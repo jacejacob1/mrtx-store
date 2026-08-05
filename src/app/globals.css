@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+/* ══════════════════════════════════════════════════════════════════
+   MRTX CLUB — design tokens
+   Sourced from CLAUDE.md §2 (colour), §3 (type), §7 (motion), §9
+   (responsive). Tailwind v4 is CSS-first, so the palette that §2
+   shows as a tailwind.config.ts block lives here in @theme instead.
+
+   Declaring the six colours as the ONLY entries under --color-*
+   replaces Tailwind's default palette rather than extending it —
+   `bg-blue-500` does not exist, only `bg-blue`. The six-colour rule
+   is enforced by the build, not by discipline.
+   ══════════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* ── §2 COLOUR — six values. There is no seventh. ───────────── */
+  --color-blue:  #2563EB;
+  --color-paper: #F2F2F0;
+  --color-ink:   #101014;
+  --color-mute:  #83838C;
+  --color-line:  #DEDEDA;
+  --color-white: #FFFFFF;
+
+  /* ── §3 TYPE — system stack only. No webfonts. Ever. ────────── */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+               "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial,
+               sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+               monospace;
+
+  /* Fluid scale. No fixed pixel font sizes in layout (§9). */
+  --text-hud:     10px;
+  --text-readout: clamp(11px, 1vw, 13px);
+  --text-body:    clamp(15px, 1.1vw, 17px);
+  --text-section: clamp(20px, 2.6vw, 32px);
+  --text-page:    clamp(28px, 4.5vw, 64px);
+
+  /* ── §7 MOTION — one curve for everything. ──────────────────── */
+  --ease-mrtx: cubic-bezier(.16, 1, .3, 1);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Base
+   ══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* §9: --vh, never 100vh. iOS Safari's collapsing toolbar makes
+     100vh taller than the screen and pushes fixed bottom elements
+     off-screen. JS overwrites this with visualViewport.height; the
+     100vh value is only the pre-hydration and no-JS fallback. */
+  --vh: 100vh;
+
+  /* §5: the aperture band height. */
+  --band-h: clamp(96px, calc(var(--vh) * .19), 168px);
+
+  color-scheme: light;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* §3: anything the machine knows goes in mono — prices, SKUs,
+   countdowns, sizes, quantities, order numbers, HUD readouts.
+   tabular-nums is mandatory on live numerals or the row twitches
+   sideways every time a digit changes width. */
+.mono, code, kbd, samp, pre {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* §3: uppercase always takes letter-spacing. Lowercase never does. */
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--text-hud);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   §11 ACCESSIBILITY
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Visible focus rings — blue, 2px, offset 2px. Never outline:none
+   without a replacement. :focus-visible so a mouse click doesn't
+   ring a button but the Tab key does. */
+:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+}
+
+::selection { background: var(--color-blue); color: var(--color-white); }
+
+/* §9: every input is 16px on phones. Anything smaller and iOS zooms
+   the page on focus — and on a fixed-position layout the user cannot
+   zoom back out. */
+@media (max-width: 600px) {
+  input, select, textarea { font-size: 16px; }
+}
+
+/* §7: prefers-reduced-motion is not an afterthought. No auto-cuts,
+   no drift, no rain, no grain animation, no parallax. The page stays
+   fully functional and completely legible. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
