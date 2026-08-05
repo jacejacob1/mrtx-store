@@ -35,44 +35,117 @@ No build command, no output directory. It's static.
 
 ---
 
-## The two things you need to change
+## Config
 
-Open `index.html`, scroll to `CONFIG` near the top of the `<script>`:
+Everything you'd want to change lives in one block at the top of the `<script>`
+in `index.html`:
 
 ```js
-LAUNCH:   "2026-09-04T20:00:00+05:30"   // ← your drop date. +05:30 is IST.
-ENDPOINT: null                          // ← where waitlist emails go
+LAUNCH:   "2026-08-14T12:00:00+05:30"   // Fri 14 Aug 2026, 12 noon IST
+FORM_ID:  ""                            // ← paste yours, see below
+ENTRY_ID: ""                            // ← paste yours, see below
+SEED:     41                            // member numbers start at 0042
 ```
 
 **`LAUNCH`** drives the countdown in the bottom-left. ISO 8601 with a timezone
-offset. A bad date makes the HUD say `SET DATE IN CONFIG` rather than silently
-lie.
+offset — `+05:30` is IST. A malformed date makes the HUD say
+`SET DATE IN CONFIG` rather than silently counting to the wrong moment.
 
-**`ENDPOINT`** is `null` right now, so emails are stored in the visitor's own
-browser (`localStorage`, key `mrtx.queue`) and **never sent anywhere**. The form,
-validation, dedupe, member numbering and success copy all work — there's just no
-server yet.
+---
 
-> The success lines deliberately never say "check your inbox". Nothing is sent,
-> so that would be a promise the page can't keep, and the first person to check
-> an empty inbox stops trusting the rest of it. Once `ENDPOINT` is live and a
-> confirmation email actually goes out, add it — the copy lives in the `WIN`
-> array right above the submit handler.
+## Collecting emails
 
-**Reading the emails back.** They're in the visitor's own browser, not yours, so
-you can only see the ones collected on that device. Open the console and run
-`JSON.parse(localStorage.getItem("mrtx.queue"))`. This is fine for a demo and
-useless for a real launch — wire up `ENDPOINT` before you drive traffic at it.
+Signups go straight into a **Google Form**, which fills a **Google Sheet** with a
+timestamp on every row. Free, unlimited, no third party, and the data is yours.
 
-To go live, sign up for [Formspree](https://formspree.io) (free tier, no backend)
-and paste your form URL:
+You need two IDs out of Google. It takes about five minutes, once.
 
-```js
-ENDPOINT: "https://formspree.io/f/xxxxxxx"
+### 1. Build the form
+
+1. Go to [forms.new](https://forms.new) — it opens a blank form.
+2. Name it something like `MRTX CLUB — waitlist`.
+3. Click the existing question. Set the title to `Email` and the type to
+   **Short answer**.
+4. Open **Settings** (the gear) and confirm all three are **off**:
+   - *Collect email addresses*
+   - *Limit to 1 response*
+   - *Restrict to users in your organisation*
+
+   Any of these being on makes Google require a sign-in, and every submission
+   from the site will be rejected — silently, because of the CORS limitation
+   described below.
+
+### 2. Get `FORM_ID`
+
+Click **Send** → the link icon (🔗) → copy. You get something like:
+
+```
+https://docs.google.com/forms/d/e/1FAIpQLSc8xK.../viewform
+                                  └──────┬──────┘
+                                    this is FORM_ID
 ```
 
-Every signup then POSTs `{"email":"…","source":"mrtx-coming-soon"}` as JSON.
-The same shape works for Resend, Supabase, Buttondown, or your own API.
+Copy the `1FAIpQLSc…` segment. Not the whole URL, not the `/viewform`.
+
+### 3. Get `ENTRY_ID`
+
+In the form editor, click the **⋮** menu (top right) → **Get pre-filled link**.
+Type `TEST` into the email box, click **Get link**, then **Copy link**. Paste it
+somewhere and look at it:
+
+```
+https://docs.google.com/forms/d/e/1FAIpQLSc.../viewform?usp=pp_url&entry.1234567890=TEST
+                                                                        └────┬────┘
+                                                                        ENTRY_ID
+```
+
+Copy **just the digits** — `1234567890`. Not the `entry.` prefix.
+
+### 4. Connect the Sheet
+
+Back in the form, open the **Responses** tab → click the green Sheets icon →
+**Create new spreadsheet**. Every signup now appears there as a timestamped row.
+
+### 5. Paste both into `index.html`
+
+```js
+FORM_ID:  "1FAIpQLSc8xK...",
+ENTRY_ID: "1234567890",
+```
+
+Commit, push, and test it once on the live site with your own address. The row
+should show up in the Sheet within a second or two.
+
+### The one caveat, and why the backup exists
+
+Google serves no CORS headers on `formResponse`, so the request has to go out as
+`mode: "no-cors"`. That works — the row lands — but the browser hands back an
+**opaque response**, meaning the page genuinely cannot tell success from failure.
+A visitor sees "access granted" either way.
+
+That's why every email is **also** written to the visitor's own browser
+(`localStorage`, key `mrtx.queue`). It won't help you recover a stranger's
+address, but it makes the failure mode debuggable: if your own test submission
+shows up locally and not in the Sheet, the problem is the two IDs or a form
+setting, not the page.
+
+To check on any device you've used:
+
+```js
+JSON.parse(localStorage.getItem("mrtx.queue"))
+```
+
+**The success copy never says "check your inbox"** — a Google Form doesn't send
+one. Promising an email that never arrives is the fastest way to lose someone
+who just opted in. If you later add a confirmation email, the lines live in the
+`WIN` array directly above the submit handler; add it there.
+
+### If you'd rather not use Google
+
+The submit handler is about eight lines. Swap the `fetch` for any endpoint that
+accepts a POST — Formspree, Resend, Supabase, Buttondown, your own API. A real
+endpoint with CORS headers also gets you genuine success/failure states back,
+which the Google route can't give you.
 
 ---
 

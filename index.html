@@ -374,17 +374,18 @@ body.neg #grain{mix-blend-mode:screen;opacity:.22}
    ══════════════════════════════════════════════════════════════ */
 var CONFIG = {
 
-  // ▶ 1. YOUR DROP DATE. ISO 8601, with a timezone offset.
-  //      +05:30 is India. Change the date, keep the shape.
-  LAUNCH: "2026-09-04T20:00:00+05:30",
+  // ▶ 1. THE DROP. 14 August 2026, 12:00 noon, India time.
+  //      ISO 8601 — +05:30 is IST. Change the date, keep the shape.
+  LAUNCH: "2026-08-14T12:00:00+05:30",
 
-  // ▶ 2. WHERE EMAILS GO.
-  //      null  = kept in the visitor's own browser only (current setting).
-  //      To go live, paste a URL that accepts a POST, e.g.
-  //      "https://formspree.io/f/xxxxxxx"
-  ENDPOINT: null,
+  // ▶ 2. WHERE EMAILS GO — your Google Form, which fills your Sheet.
+  //      Both of these are in the README, section "Collecting emails".
+  //      Leave them empty and signups only save in the visitor's own
+  //      browser, which is fine for testing and useless for a launch.
+  FORM_ID:  "",        // the 1FAIpQLSc... part of your form's share link
+  ENTRY_ID: "",        // just the digits, e.g. 1234567890
 
-  // ▶ 3. Where the waitlist number starts. Cosmetic.
+  // ▶ 3. Where the member number starts. Cosmetic.
   SEED: 41
 
 };
@@ -624,13 +625,17 @@ form.addEventListener("submit", function(e){
   if(!already) q.push(v);
   try { localStorage.setItem(KEY, JSON.stringify(q)); } catch(e){}
 
-  /* CONFIG.ENDPOINT is null by default, so nothing leaves the browser.
-     Set it and every signup POSTs there as JSON. */
-  if(CONFIG.ENDPOINT){
-    fetch(CONFIG.ENDPOINT, {
-      method:  "POST",
-      headers: {"Content-Type":"application/json", "Accept":"application/json"},
-      body:    JSON.stringify({email: v, source: "mrtx-coming-soon"})
+  /* Post to the Google Form, which drops a timestamped row in the Sheet.
+     mode:"no-cors" is required — Google sends no CORS headers, so without
+     it the browser blocks the request. The trade-off is that the response
+     is opaque: we cannot tell success from failure, which is exactly why
+     the localStorage copy above is kept as a backup. urlencoded bodies are
+     CORS-safelisted, so this never triggers a preflight. */
+  if(CONFIG.FORM_ID && CONFIG.ENTRY_ID){
+    fetch("https://docs.google.com/forms/d/e/" + CONFIG.FORM_ID + "/formResponse", {
+      method: "POST",
+      mode:   "no-cors",
+      body:   new URLSearchParams([["entry." + CONFIG.ENTRY_ID, v]])
     })["catch"](function(){});
   }
 

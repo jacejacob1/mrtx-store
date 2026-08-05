@@ -1,5 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+
+  "//": "This project used to be React + Vite. Vercel still has 'vite build' saved as a Project Setting override, and there is no package.json any more, so that command fails with exit 127. These four keys override the dashboard and keep it overridden — do not remove them.",
+
+  "framework": null,
+  "installCommand": "",
+  "buildCommand": "echo 'static site - nothing to build'",
+  "outputDirectory": ".",
+
   "headers": [
     {
       "source": "/assets/(.*)",
