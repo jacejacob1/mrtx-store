@@ -63,12 +63,6 @@ export const MATERIALS: readonly Material[] = [
   { id: "grain",  name: "grain",          finish: "HALO",      blend: "luminosity",  hex: "#2563EB", light: false, contrast: 6.4,  reads: "same blue, lit" },
 ] as const;
 
-/** Cuts are cuts — hard frame changes, never fades.
- *
- *  §7 specifies 2400ms. Set to 2500ms at Jace's request. The difference
- *  is inaudible; the rule that matters is that it's a cut. */
-export const CUT_INTERVAL_MS = 2500;
-
 /**
  * What colour SMALL TYPE must be over a given material.
  *

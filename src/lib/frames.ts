@@ -43,8 +43,29 @@ export const FRAMES: readonly Frame[] = [
   { id: "field",    tone: "white", worst: 3.15, alt: "A blue gradient field crossed by faint grid lines" },
 ] as const;
 
-/** §7 / Jace: hard cut every 2.5s. Never a crossfade. */
-export const CUT_MS = 2500;
+/**
+ * Milliseconds between hard cuts. Never a crossfade.
+ *
+ * §7 specifies 2400ms and warns that faster is annoying — but that was
+ * written for a narrow band of tiled texture, where a cut was a subtle
+ * change. Full-frame photography reads completely differently, and a
+ * short interval turns the page into a title sequence rather than a
+ * backdrop. Jace's call.
+ *
+ * Two things to know before going much below this:
+ *
+ *  - WCAG 2.3.1 caps flashing at 3 per second. At 500ms this is 2/s, so
+ *    it passes — but several cuts here swing the full viewport between
+ *    near-black (earth) and light grey (glass), which is a large
+ *    luminance change. 334ms would be 3/s and at the limit; anything
+ *    below that fails. `prefers-reduced-motion` stops the rotation
+ *    entirely, which is the real escape hatch.
+ *  - The rotation is decode-gated, so on a slow device a cut waits for
+ *    a clean frame rather than showing a half-painted one. That means
+ *    very short intervals degrade into "as fast as the device can go"
+ *    rather than tearing.
+ */
+export const CUT_MS = 500;
 
 const WIDTHS = [640, 1024, 1600, 2560] as const;
 

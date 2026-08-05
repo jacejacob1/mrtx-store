@@ -49,12 +49,49 @@ export function Hero() {
 
   const frame = FRAMES[i];
 
+  /* Warm the whole set once the page has loaded.
+     §10 says preload only the first and lazy-load the rest after `load`,
+     which is exactly this. It matters much more at a short CUT_MS: at
+     2.5s the rotation outran the network comfortably, but a fast cut
+     reaches frame two before it has been fetched, and the first cycle
+     arrives ragged instead of rhythmic. Warming costs nothing after
+     first paint and makes every cycle after the first identical. */
+  useEffect(() => {
+    if (calm) return;
+
+    const warm = () => {
+      for (const f of FRAMES) {
+        const im = new Image();
+        // Same srcset and sizes as the buffers, so the browser resolves
+        // to the same file and the cache actually hits.
+        im.sizes = FRAME_SIZES;
+        im.srcset = frameSrcSet(f.id);
+        im.src = frameSrc(f.id, 1600);
+      }
+    };
+
+    if (document.readyState === "complete") {
+      warm();
+      return;
+    }
+    window.addEventListener("load", warm, { once: true });
+    return () => window.removeEventListener("load", warm);
+  }, [calm]);
+
+  /* The cut loop.
+     Self-scheduling timeout rather than setInterval: the delay is
+     measured from when the previous cut COMPLETED, so a slow decode
+     delays one cut instead of eating the next tick and making the
+     rhythm lurch. At 2.5s the difference was invisible; at a few
+     hundred ms it is the difference between a beat and a stutter. */
   useEffect(() => {
     // §7: prefers-reduced-motion — no auto-cuts. The first frame stays.
     if (calm) return;
 
     let cancelled = false;
-    const id = window.setInterval(async () => {
+    let timer = 0;
+
+    const tick = async () => {
       if (busy.current) return;
       busy.current = true;
 
@@ -74,21 +111,23 @@ export function Hero() {
           await img.decode();
         } catch {
           // decode() rejects if the src changed underneath us or the
-          // image failed. Showing it anyway is better than stalling the
-          // rotation on one bad file.
+          // image failed. Showing it anyway beats stalling the rotation
+          // on one bad file.
         }
       }
 
+      busy.current = false;
       if (!cancelled) {
         setI(next);
         setFront(back);
       }
-      busy.current = false;
-    }, CUT_MS);
+    };
+
+    timer = window.setTimeout(tick, CUT_MS);
 
     return () => {
       cancelled = true;
-      window.clearInterval(id);
+      window.clearTimeout(timer);
     };
   }, [i, front, calm]);
 
