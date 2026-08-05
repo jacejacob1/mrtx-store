@@ -43,3 +43,6 @@ next-env.d.ts
 # MRTX
 *.glb
 .DS_Store
+
+# frame masters live in Drive, not git — only the encoded webp ship
+_design/masters/

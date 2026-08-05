@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { typeHexOn } from "@/lib/materials";
 
 /** §8: half-width katakana + 0-9A-F + MRTX. */
 const GLYPHS =
@@ -27,30 +26,20 @@ type Drop = {
  * The real system cursor stays visible. Hiding it was tried on the
  * coming-soon page and it made the email field feel broken.
  *
- * §8 says the rain "burns white the instant a glyph crosses into the
- * aperture". There is no aperture on this page any more, so that rule
- * has nothing to key off. The equivalent is to key off the material
- * itself: blue reads fine over the light materials but disappears into
- * `orbit` (#0A1024) and fights `flux` and `grain`, which are the same
- * blue. Over those the glyphs burn to the material's own type colour,
- * which is the measured-legible one.
+ * The rain is WHITE here rather than §8's blue. Every frame is either
+ * dark or saturated blue, and blue glyphs over the blue frames — tote,
+ * card, portrait, field — read as smudges rather than characters. White
+ * is the one colour that holds on all eight. Blue survives where it
+ * still means something: the focus ring and the add-to-cart underline.
+ *
+ * Scoped to the hero rather than the whole document: §5 bans this kind
+ * of motion "anywhere the user is trying to read, choose, or pay".
  *
  * Never initialises on coarse pointers — `(hover: hover) and
  * (pointer: fine)` only. On touch it is invisible battery drain.
  */
-export function CursorRain({ materialId }: { materialId: string }) {
+export function CursorRain() {
   const ref = useRef<HTMLCanvasElement | null>(null);
-
-  // The rAF loop reads the current material every frame but must not
-  // restart on every cut — tearing down and re-seeding the canvas ten
-  // times a rotation would visibly stutter the rain. Mirroring the prop
-  // into a ref keeps the loop alive across cuts. Written in an effect,
-  // not during render: a ref mutated mid-render can leave the committed
-  // DOM disagreeing with the value the loop reads.
-  const mat = useRef(materialId);
-  useEffect(() => {
-    mat.current = materialId;
-  }, [materialId]);
 
   useEffect(() => {
     const fine = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -58,9 +47,6 @@ export function CursorRain({ materialId }: { materialId: string }) {
     if (!fine.matches || calm.matches) return;
 
     const canvas = ref.current;
-    // The canvas fills its parent, which is offset below the fixed nav
-    // — so pointer coordinates are converted into parent space rather
-    // than assumed to be viewport space.
     const host = canvas?.parentElement;
     if (!canvas || !host) return;
     const ctx = canvas.getContext("2d");
@@ -87,9 +73,16 @@ export function CursorRain({ materialId }: { materialId: string }) {
     let py = -1e4;
     let speed = 0;
     let raf = 0;
+    let inside = false;
 
     const onMove = (e: PointerEvent) => {
       const r = host.getBoundingClientRect();
+      inside =
+        e.clientY >= r.top &&
+        e.clientY <= r.bottom &&
+        e.clientX >= r.left &&
+        e.clientX <= r.right;
+      if (!inside) return;
       const nx = e.clientX - r.left;
       const ny = e.clientY - r.top;
       if (px > -1e3) speed = Math.min(Math.hypot(nx - px, ny - py), 60);
@@ -98,13 +91,14 @@ export function CursorRain({ materialId }: { materialId: string }) {
     };
 
     const spawn = (now: number) => {
+      if (!inside) return;
       // §8: move faster → rain harder.
       const n = speed > 26 ? 3 : speed > 10 ? 2 : speed > 1.5 ? 1 : 0;
-      for (let i = 0; i < n && drops.length < MAX; i++) {
+      for (let k = 0; k < n && drops.length < MAX; k++) {
         drops.push({
           // §8: spawn 5px right and 15px below the hotspot so the arrow
           // never covers the glyphs, snapped to the column grid.
-          x: Math.round((px + 5) / COL) * COL + (i - 1) * COL,
+          x: Math.round((px + 5) / COL) * COL + (k - 1) * COL,
           y: py + 15,
           vy: 0.11 + Math.random() * 0.13,
           born: now,
@@ -112,14 +106,6 @@ export function CursorRain({ materialId }: { materialId: string }) {
           head: true,
         });
       }
-    };
-
-    /** "2563EB" -> "37,99,235" */
-    const rgb = (hex: string) => {
-      const v = hex.replace("#", "");
-      return [0, 2, 4]
-        .map((i) => parseInt(v.slice(i, i + 2), 16))
-        .join(",");
     };
 
     let last = performance.now();
@@ -136,28 +122,22 @@ export function CursorRain({ materialId }: { materialId: string }) {
       ctx.font = `${SIZE}px ui-monospace, SFMono-Regular, Menlo, monospace`;
       ctx.textBaseline = "top";
 
-      // Blue over the light materials; the material's own measured type
-      // colour over the ones blue would vanish into.
-      const typeHex = typeHexOn(mat.current);
-      const ink = typeHex === "#FFFFFF" ? "255,255,255" : rgb("#2563EB");
-      const glow = typeHex === "#FFFFFF" ? "#FFFFFF" : "#2563EB";
-
-      for (let i = drops.length - 1; i >= 0; i--) {
-        const d = drops[i];
+      for (let k = drops.length - 1; k >= 0; k--) {
+        const d = drops[k];
         const age = now - d.born;
         if (age > LIFE || d.y > h + 40) {
-          drops.splice(i, 1);
+          drops.splice(k, 1);
           continue;
         }
         d.y += d.vy * dt;
         if (d.head && age > 90) d.head = false;
 
         const fade = 1 - age / LIFE;
-        ctx.fillStyle = `rgba(${ink},${fade * 0.9})`;
+        ctx.fillStyle = `rgba(255,255,255,${fade * 0.92})`;
 
         // §8: the head glyph of each column gets an 8px glow.
         ctx.shadowBlur = d.head ? 8 : 0;
-        if (d.head) ctx.shadowColor = glow;
+        if (d.head) ctx.shadowColor = "#FFFFFF";
 
         ctx.fillText(d.ch, d.x, d.y);
       }

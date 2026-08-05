@@ -1,155 +1,168 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  MATERIALS,
-  CUT_INTERVAL_MS,
-  texturePath,
-  typeColorOn,
-} from "@/lib/materials";
+  FRAMES,
+  CUT_MS,
+  frameSrc,
+  frameSrcSet,
+  FRAME_SIZES,
+} from "@/lib/frames";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useCountdown, CountdownView } from "@/components/Countdown";
-import { Wordmark } from "@/components/Wordmark";
 import { CursorRain } from "@/components/CursorRain";
 
 /**
- * Home hero — full-bleed material, fixed, hard-cutting.
+ * Home hero — full-bleed match cut.
  *
- * ── DEVIATION FROM §5, ON PURPOSE ──────────────────────────────────
- * §5 makes the aperture the signature device: a narrow band tracking
- * the cursor with a duplicate page copy behind it. Jace asked for the
- * opposite here — the material filling the whole viewport, fixed, no
- * pointer tracking, cutting every 2.5s.
+ * Eight frames, each with the wordmark baked in at the dead centre of a
+ * square master. `object-fit: cover` on a square image keeps the centre
+ * on the same screen pixels at every aspect ratio, so the world changes
+ * every 2.5s and the mark does not move at all.
  *
- * What that gains: the match cut becomes the entire page rather than a
- * strip of it, which is closer to the launch film's actual grammar —
- * the film IS full-frame match cuts; the slit was the page's
- * interpretation of it.
+ * There is no SVG wordmark and no tagline here any more: the mark IS the
+ * photograph. That also means no blend finishes on this page — §6's
+ * finishes apply to the SVG mark over a tiled material, which is still
+ * how the lookbook, the product media and the 404 work.
  *
- * What it costs: the aperture is gone from home. It still runs on 404,
- * and the product pages still use the slit sweep (§14), so the device
- * is not lost from the system — just from this page.
- *
- * The duplicate page copy goes with it. There is no band to develop
- * the artwork through, so there is nothing to duplicate: the mark
- * blends directly against the full-bleed material. That removes the
- * whole `inert` / `aria-hidden` / duplicate-id problem §5 warns about.
- *
- * ── §6 IS STILL ENFORCED ───────────────────────────────────────────
- * "Never behind body copy, tables, forms, or anything with a price."
- * The material is fixed behind the whole document, but every section
- * below the hero paints solid paper over it. The material is visible
- * at the hero and nowhere a price is.
+ * DOUBLE BUFFERED. Two <img> elements alternate. The next frame is
+ * loaded and DECODED on the hidden one before visibility flips, so a
+ * cut is a true cut: no fade, no flash of empty, no half-painted image.
+ * Only two frames are ever decoded in memory, which matters because a
+ * 2560² frame is ~26 MB decoded and eight of them would not fit on a
+ * phone.
  */
 export function Hero() {
   useViewportHeight();
   const calm = useReducedMotion();
   const parts = useCountdown();
 
-  const [mi, setMi] = useState(0);
-  const material = MATERIALS[mi];
+  const [i, setI] = useState(0);
+  // Which buffer is currently showing. The other one is being loaded.
+  const [front, setFront] = useState(0);
+  // One ref holding both elements, rather than an array of two refs —
+  // an array literal is a new identity every render, which makes the
+  // effect's dependency list dishonest.
+  const bufs = useRef<(HTMLImageElement | null)[]>([null, null]);
+  const busy = useRef(false);
 
-  // §7: hard cuts on a timer. No drift, no easing, no crossfade — the
-  // cut IS the motion. Under reduced motion the timer never starts and
-  // the first material stays put.
+  const frame = FRAMES[i];
+
   useEffect(() => {
+    // §7: prefers-reduced-motion — no auto-cuts. The first frame stays.
     if (calm) return;
-    const id = window.setInterval(
-      () => setMi((i) => (i + 1) % MATERIALS.length),
-      CUT_INTERVAL_MS,
-    );
-    return () => window.clearInterval(id);
-  }, [calm]);
 
-  // §6 law 1: small type never blends. Solid, and the colour is chosen
-  // per material by measured contrast — see typeColorOn.
-  const type = typeColorOn(material.id);
+    let cancelled = false;
+    const id = window.setInterval(async () => {
+      if (busy.current) return;
+      busy.current = true;
+
+      const next = (i + 1) % FRAMES.length;
+      const back = front === 0 ? 1 : 0;
+      const img = bufs.current[back];
+
+      if (img) {
+        const f = FRAMES[next];
+        img.srcset = frameSrcSet(f.id);
+        img.sizes = FRAME_SIZES;
+        img.src = frameSrc(f.id, 1600);
+        img.alt = f.alt;
+        try {
+          // Wait for a fully decoded bitmap before showing it. Without
+          // this the "cut" can land on a partially painted frame.
+          await img.decode();
+        } catch {
+          // decode() rejects if the src changed underneath us or the
+          // image failed. Showing it anyway is better than stalling the
+          // rotation on one bad file.
+        }
+      }
+
+      if (!cancelled) {
+        setI(next);
+        setFront(back);
+      }
+      busy.current = false;
+    }, CUT_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [i, front, calm]);
 
   return (
     <>
-      {/* Fixed, full-viewport, isolated. §12: the material must share
-          an isolated group with the mark or mix-blend-mode silently
-          does nothing. This wrapper IS that group. */}
       <div
-        className="fixed inset-x-0 bottom-0 z-0 overflow-hidden"
-        // Starts below the fixed nav. The nav stays solid paper on every
-        // route: it is 57px of guaranteed-legible chrome, and making it
-        // transparent would mean recolouring it every 2.5s to stay
-        // readable against ten different materials. §16 — the quieter
-        // option, and easy to revisit.
-        style={{ isolation: "isolate", top: "57px" }}
+        className="fixed inset-x-0 bottom-0 z-0 overflow-hidden bg-ink"
+        // Starts below the fixed nav, which stays solid paper on every
+        // route so it is legible over all eight frames.
+        style={{ top: "57px" }}
       >
+        {[0, 1].map((b) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={b}
+            ref={(el) => {
+              bufs.current[b] = el;
+            }}
+            src={b === 0 ? frameSrc(frame.id, 1600) : undefined}
+            srcSet={b === 0 ? frameSrcSet(frame.id) : undefined}
+            sizes={FRAME_SIZES}
+            alt={b === 0 ? frame.alt : ""}
+            aria-hidden={b !== front}
+            // §10: only the first frame is eager. The rest arrive as the
+            // rotation reaches them.
+            fetchPriority={b === 0 ? "high" : "low"}
+            decoding="sync"
+            className="absolute inset-0 size-full object-cover object-center"
+            // The cut is a CUT. No transition, ever.
+            style={{ opacity: b === front ? 1 : 0 }}
+          />
+        ))}
+
+        {/* Measured, not chosen. Three frames cannot carry white HUD
+            text unaided — glass sits at 2.49:1, the blue field at 3.15,
+            the concrete card at 3.23. Compositing --ink over the
+            brightest 10% of the readout regions, 0.35 alpha is the
+            lowest value at which all eight clear 4.5:1. The gradient
+            peaks above that at the very edge where the type sits and
+            fades to nothing by 22%, so it reads as a vignette rather
+            than a bar. */}
+        <div className="hero-scrim" aria-hidden />
+
         <div
-          key={material.id}
-          className="matbg absolute inset-0"
-          style={{ backgroundImage: `url(${texturePath(material.id)})` }}
-          aria-hidden
-        />
-
-        <section
-          className="relative grid h-full place-items-center px-6"
-          style={{ color: type }}
-          aria-label="MRTX CLUB"
+          className="pointer-events-none absolute inset-0"
+          style={{ color: "var(--color-white)" }}
         >
-          <div className="flex w-full flex-col items-center gap-[clamp(18px,3.4vh,34px)]">
-            <p className="label flex items-center gap-2.5">
-              <span
-                className="inline-block size-1.5 rounded-full"
-                style={{ background: type }}
-                aria-hidden
-              />
-              IDX 001 / SS26
-            </p>
-
-            {/* §9: a 4:1 mark, capped by height as well as width so it
-                scales proportionally in landscape rather than
-                letterboxing inside its own box.
-                §6: the mark meets the material through that material's
-                blend mode — it isn't sitting ON the material, it's made
-                of it. */}
-            <Wordmark
-              className="mrtx-mark"
-              style={{
-                width: "min(72vw, 620px, 96vh)",
-                color: material.light
-                  ? "var(--color-white)"
-                  : "var(--color-ink)",
-                ["--finish" as string]: material.blend ?? "normal",
-              }}
-            />
-
-            <p
-              className="text-center"
-              style={{ fontSize: "clamp(13px, 1.5vw, 17px)" }}
-            >
-              <i className="not-italic opacity-70">opening </i>
-              <b className="tracking-[.18em] uppercase">the club</b>
-              <i className="not-italic opacity-70"> soon</i>
-            </p>
-
+          <p
+            className="label absolute"
+            style={{
+              left: "max(20px, env(safe-area-inset-left))",
+              bottom: "max(18px, env(safe-area-inset-bottom))",
+            }}
+          >
             <CountdownView parts={parts} />
-          </div>
+          </p>
 
           <p
             className="label absolute"
             style={{
-              right: "max(16px, env(safe-area-inset-right))",
-              bottom: "max(16px, env(safe-area-inset-bottom))",
+              right: "max(20px, env(safe-area-inset-right))",
+              bottom: "max(18px, env(safe-area-inset-bottom))",
             }}
           >
-            MAT.{String(mi + 1).padStart(2, "0")} {material.finish}{" "}
-            {material.hex}
+            IDX {String(i + 1).padStart(3, "0")} / SS26
           </p>
-        </section>
+        </div>
 
-        <CursorRain materialId={material.id} />
+        <CursorRain />
       </div>
 
       {/* The hero is fixed, so the document needs its height back or
           there is nothing to scroll past. Minus the nav spacer the
-          layout already contributes, so the drop begins exactly one
-          viewport down. */}
+          layout already contributes. */}
       <div style={{ height: "calc(var(--vh) - 57px)" }} aria-hidden />
     </>
   );
