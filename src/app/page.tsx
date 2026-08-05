@@ -1,4 +1,8 @@
+import Link from "next/link";
 import { Hero } from "@/components/Hero";
+import { ProductCard } from "@/components/ProductCard";
+import { PRODUCTS } from "@/lib/products";
+import { MATERIALS, texturePath } from "@/lib/materials";
 
 /**
  * Home — CLAUDE.md §14.
@@ -6,16 +10,59 @@ import { Hero } from "@/components/Hero";
  * "Aperture hero at full effect. Below it, one drop, one lookbook
  * strip, nothing else. Resist adding sections."
  *
- * The drop and the lookbook strip both need a catalogue and product
- * photography, neither of which exists yet. Per §16, the quieter option
- * is to ship the hero alone rather than fill the space with
- * placeholders — so that is what this is. Those two sections go in when
- * there is something real to put in them.
+ * Three sections. That is the whole page, and it stays that way.
  */
 export default function Home() {
   return (
-    <main className="fixed inset-0 overflow-hidden">
+    <>
       <Hero />
-    </main>
+
+      {/* ONE drop. */}
+      <section className="mx-auto max-w-[1180px] px-5 py-20">
+        <div className="flex items-baseline justify-between gap-6 border-b border-line pb-6">
+          <h2 className="label text-mute">THE DROP / SS26</h2>
+          <Link href="/shop" className="mono text-readout text-ink">
+            all four →
+          </Link>
+        </div>
+
+        <div className="mt-10 grid grid-cols-2 gap-x-5 gap-y-14">
+          {PRODUCTS.map((p) => (
+            <ProductCard key={p.slug} product={p} />
+          ))}
+        </div>
+      </section>
+
+      {/* ONE lookbook strip. */}
+      <section className="pb-20">
+        <div className="mx-auto max-w-[1180px] px-5">
+          <div className="flex items-baseline justify-between gap-6 border-b border-line pb-6">
+            <h2 className="label text-mute">LOOKBOOK / TEN MATERIALS</h2>
+            <Link href="/lookbook" className="mono text-readout text-ink">
+              see all →
+            </Link>
+          </div>
+        </div>
+
+        {/* A horizontal strip of every material, unblended and
+            uncaptioned — the full treatment lives on /lookbook. §6:
+            materials never sit behind body copy, so there is none. */}
+        <div className="mt-8 flex gap-2 overflow-x-auto px-5 pb-2">
+          {MATERIALS.map((m) => (
+            <Link
+              key={m.id}
+              href="/lookbook"
+              aria-label={`${m.name}, ${m.finish} finish`}
+              className="h-[clamp(120px,20vh,190px)] w-[clamp(150px,24vw,260px)] shrink-0"
+              style={{
+                backgroundImage: `url(${texturePath(m.id)})`,
+                backgroundSize: "384px 152px",
+                backgroundRepeat: "repeat",
+              }}
+            />
+          ))}
+        </div>
+      </section>
+    </>
   );
 }

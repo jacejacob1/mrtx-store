@@ -17,7 +17,18 @@
   --color-blue:  #2563EB;
   --color-paper: #F2F2F0;
   --color-ink:   #101014;
-  --color-mute:  #83838C;
+
+  /* AMENDED from §2's #83838C. Measured, not judged:
+       #83838C on paper = 3.35:1  — fails §11's 4.5:1 body floor
+       #6E6E78 on paper = 4.4985:1 — §2's own dark value, misses by .0015
+       #6B6B74 on paper = 4.71:1  — passes with headroom   <- this
+     The landing page never hit this because it has no body prose;
+     `mute` there only ever touched 10px HUD labels. A store uses
+     secondary text everywhere — taglines, row labels, readouts — so
+     the original value fails on six separate pairs. Still six colours;
+     one of them moved. See the Phase 2 notes. */
+  --color-mute:  #6B6B74;
+
   --color-line:  #DEDEDA;
   --color-white: #FFFFFF;
 
@@ -132,8 +143,12 @@ body {
    clip-path; that repaints and drops frames on mid-range Android.
    ══════════════════════════════════════════════════════════════════ */
 
+/* Absolute, not fixed. The store scrolls, and §5 bans the aperture
+   "anywhere the user is trying to read, choose, or pay" — a fixed band
+   would follow the reader down into the listing. Scoped to the hero
+   section, it simply scrolls away. */
 #band {
-  position: fixed;
+  position: absolute;
   left: 0;
   right: 0;
   top: 0;
@@ -221,4 +236,230 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   #band.jolt #bandInner::after { animation: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   PRODUCT MEDIA — §6, §14
+
+   No photography yet, so a product is depicted as the material it is
+   bound to with the mark in that material's finish. §6: the materials
+   ARE the brand's world.
+   ══════════════════════════════════════════════════════════════════ */
+
+.pmedia {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  background: var(--color-paper);
+}
+
+.pmedia-layer {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  /* §12: the texture must live in the SAME isolated group as the mark,
+     or mix-blend-mode silently does nothing. */
+  isolation: isolate;
+}
+
+.pmedia-tex {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  background-size: 384px 152px;
+}
+
+/* The alt view reads as the same material seen from a different
+   distance — a bigger tile, so the grain reads coarser. */
+.pmedia-tex-alt { background-size: 768px 304px; }
+
+.pmedia-mark {
+  position: relative;
+  width: 46%;
+  mix-blend-mode: var(--finish, normal);
+}
+
+@supports not (mix-blend-mode: multiply) {
+  .pmedia-mark { mix-blend-mode: normal; }
+}
+
+/* §14: a slit sweeps once across on hover to reveal the alt view.
+
+   Two counter-translated layers, exactly like the hero aperture (§5),
+   so this composites instead of repainting. The slit is 20% of the
+   media height, so the inner layer is 500% tall (100 / 20) and its
+   translate values are the arithmetic inverse of the outer ones:
+
+     outer -100%  = -20% of the media  ->  inner needs +20% of media
+                                        =  +20/5  =  +4% of itself
+     outer  500%  = +100% of the media ->  inner needs -100% of media
+                                        =  -100/5 = -20% of itself */
+
+.pslit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 20%;
+  overflow: hidden;
+  transform: translateY(-100%);
+  will-change: transform;
+}
+
+.pslit-inner {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 500%;
+  transform: translateY(4%);
+  will-change: transform;
+}
+
+.pmedia-sweep:hover .pslit,
+.pmedia-sweep:focus-within .pslit {
+  animation: slit-out 620ms var(--ease-mrtx);
+}
+
+.pmedia-sweep:hover .pslit-inner,
+.pmedia-sweep:focus-within .pslit-inner {
+  animation: slit-in 620ms var(--ease-mrtx);
+}
+
+@keyframes slit-out {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(500%); }
+}
+
+@keyframes slit-in {
+  from { transform: translateY(4%); }
+  to   { transform: translateY(-20%); }
+}
+
+/* §7: no sweep under reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .pmedia-sweep:hover .pslit,
+  .pmedia-sweep:focus-within .pslit,
+  .pmedia-sweep:hover .pslit-inner,
+  .pmedia-sweep:focus-within .pslit-inner {
+    animation: none;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SHOP CHROME — §14
+   "Calm grid. Generous whitespace, hairline separators. No badges, no
+   SALE starbursts, no hover-zoom."
+   ══════════════════════════════════════════════════════════════════ */
+
+.hair { border-color: var(--color-line); }
+
+/* §14: out-of-stock is struck through, never hidden. */
+/* Border is --mute, not --line: WCAG 1.4.11 wants 3:1 on a control
+   boundary and --line measures 1.20:1 on paper. --line stays for
+   decorative section rules, where no minimum applies. */
+.chip {
+  font-family: var(--font-mono);
+  font-size: var(--text-readout);
+  letter-spacing: .12em;
+  padding: .55rem .85rem;
+  border: 1px solid var(--color-mute);
+  background: transparent;
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: border-color 250ms var(--ease-mrtx),
+              color 250ms var(--ease-mrtx);
+}
+
+.chip:hover:not(:disabled) { border-color: var(--color-ink); }
+
+.chip[aria-pressed="true"] {
+  border-color: var(--color-ink);
+  color: var(--color-paper);
+  background: var(--color-ink);
+}
+
+.chip:disabled {
+  color: var(--color-mute);
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+/* §14: "One blue element on the page: the add-to-cart underline." */
+.buy {
+  border-bottom: 2px solid var(--color-blue);
+  padding-bottom: .35rem;
+  transition: opacity 250ms var(--ease-mrtx);
+}
+
+.buy:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ══════════════════════════════════════════════════════════════════
+   POLICY PROSE
+
+   §11 requires 4.5:1 for body text. `mute` measures 3.35:1 on paper,
+   so it is NEVER used for prose here — secondary text is `ink`
+   differentiated by size and weight, not by washing out the contrast.
+   `mute` is confined to uppercase labels and HUD readouts.
+   ══════════════════════════════════════════════════════════════════ */
+
+.policy h2 {
+  font-size: 15px;
+  font-family: var(--font-mono);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  margin-top: 2.5rem;
+  margin-bottom: .75rem;
+}
+
+.policy h2:first-child { margin-top: 0; }
+
+.policy p,
+.policy li {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--color-ink);
+}
+
+.policy p + p { margin-top: 1rem; }
+
+.policy ul {
+  margin-top: .75rem;
+  padding-left: 1.1rem;
+  list-style: none;
+}
+
+.policy li { position: relative; }
+.policy li + li { margin-top: .5rem; }
+
+.policy li::before {
+  content: "—";
+  position: absolute;
+  left: -1.1rem;
+  color: var(--color-mute);
+}
+
+.policy dl { margin-top: .75rem; }
+
+.policy dt {
+  font-family: var(--font-mono);
+  font-size: var(--text-readout);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--color-mute);
+  margin-top: 1rem;
+}
+
+.policy dd {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--color-ink);
+}
+
+.policy a {
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }

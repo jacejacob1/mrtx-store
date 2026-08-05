@@ -11,17 +11,23 @@ import { CursorRain } from "@/components/CursorRain";
 /**
  * The aperture — CLAUDE.md §5.
  *
- *   #band        fixed, height var(--band-h), overflow:hidden,
+ *   #band        absolute, height var(--band-h), overflow:hidden,
  *                translate3d(0, y, 0), pointer-events:none
  *     #bandInner height var(--vh), translate3d(0, -y, 0),
  *                isolation:isolate
  *       #tex     the material, translate3d(-drift, y, 0)
- *       .lit     the duplicate page copy, inert + aria-hidden
+ *       .mrtx-lit the duplicate page copy, inert + aria-hidden
  *
  * Two stacked transforms and an overflow:hidden. Nothing repaints —
  * it's all compositor work. Do NOT reimplement this with a clip-path
  * animated per frame; that repaints and drops frames on mid-range
  * Android.
+ *
+ * The band is ABSOLUTE inside the hero section rather than fixed to
+ * the viewport, unlike the coming-soon page. The store scrolls, and §5
+ * bans the aperture "anywhere the user is trying to read, choose, or
+ * pay" — a fixed band would follow the reader down into the drop
+ * listing. Scoping it to the hero means it simply scrolls away.
  *
  * The two gotchas from §12, both load-bearing:
  *   - `isolation:isolate` on #bandInner. mix-blend-mode only blends
@@ -29,8 +35,7 @@ import { CursorRain } from "@/components/CursorRain";
  *     were a sibling of the mark, all ten finishes would silently do
  *     nothing — no error, no warning, just a flat mark.
  *   - `pointer-events:none` on #band. It tracks the cursor, so it is
- *     always directly under it. Without this it swallows every click
- *     before the element beneath receives one.
+ *     always directly under it. Without this it swallows every click.
  */
 export function Hero() {
   useViewportHeight();
@@ -40,12 +45,13 @@ export function Hero() {
   const [mi, setMi] = useState(0);
   const material = MATERIALS[mi];
 
+  const stageRef = useRef<HTMLElement | null>(null);
   const bandRef = useRef<HTMLDivElement | null>(null);
   const innerRef = useRef<HTMLDivElement | null>(null);
   const texRef = useRef<HTMLDivElement | null>(null);
 
-  // Shared with CursorRain so a glyph can burn white the instant it
-  // crosses into the slit. Refs, not state — this changes every frame.
+  // Shared with CursorRain so a glyph burns white the instant it
+  // crosses into the slit. Refs, not state — these change every frame.
   const bandY = useRef(0);
   const bandH = useRef(0);
 
@@ -53,8 +59,8 @@ export function Hero() {
     setMi((i) => (i + step + MATERIALS.length) % MATERIALS.length);
     const band = bandRef.current;
     if (!band) return;
-    // §7: the shutter jolt after a cut — 260ms, decaying. Restarted by
-    // removing and reflowing the class.
+    // §7: the shutter jolt after a cut. Restarted by removing the class
+    // and forcing a reflow before re-adding it.
     band.classList.remove("jolt");
     void band.offsetWidth;
     band.classList.add("jolt");
@@ -65,33 +71,31 @@ export function Hero() {
      it is written straight to style.transform inside one rAF loop —
      React never re-renders for motion. */
   useEffect(() => {
+    const stage = stageRef.current;
     const band = bandRef.current;
     const inner = innerRef.current;
     const tex = texRef.current;
-    if (!band || !inner || !tex) return;
+    if (!stage || !band || !inner || !tex) return;
 
-    const h = () => band.offsetHeight;
-    let y = (window.innerHeight - h()) / 2;
-    let ty = y;
+    let y = 0;
+    let ty = 0;
     let drift = 0;
     let drifting = true;
     let raf = 0;
-
-    bandH.current = h();
-
-    const onMove = (e: PointerEvent) => {
-      drifting = false;
-      ty = e.clientY - h() / 2;
-    };
-
-    // §7: prefers-reduced-motion — no drift, no parallax. The band
-    // parks in the middle and stays there. Cuts still work on click.
     const t0 = performance.now();
 
+    const onMove = (e: PointerEvent) => {
+      const r = stage.getBoundingClientRect();
+      // Ignore the pointer once the hero has scrolled away.
+      if (e.clientY < r.top || e.clientY > r.bottom) return;
+      drifting = false;
+      ty = e.clientY - r.top - band.offsetHeight / 2;
+    };
+
     const frame = (now: number) => {
-      const H = h();
+      const H = band.offsetHeight;
+      const max = Math.max(0, stage.offsetHeight - H);
       bandH.current = H;
-      const max = window.innerHeight - H;
 
       if (!calm) {
         if (drifting) {
@@ -100,6 +104,8 @@ export function Hero() {
         y += (ty - y) * 0.085;
         drift = ((now - t0) / 90) % 384;
       } else {
+        // §7: reduced motion — no drift, no parallax. The band parks in
+        // the middle. Cuts still work on click.
         y = max / 2;
         drift = 0;
       }
@@ -128,40 +134,45 @@ export function Hero() {
 
   /* ── cuts ───────────────────────────────────────────────────────
      §7: auto-advance every 2400ms. Faster is annoying, slower loses
-     the stop-motion feel. Cuts are CUTS — hard frame changes with no
-     crossfade. This is the single most brand-defining motion decision.
-     Under reduced motion the timer never starts. */
+     the stop-motion feel. Cuts are CUTS — hard frame changes, never
+     crossfades. Under reduced motion the timer never starts. */
   useEffect(() => {
     if (calm) return;
     const id = window.setInterval(() => cut(1), CUT_INTERVAL_MS);
     return () => window.clearInterval(id);
   }, [calm, cut]);
 
+  /* Click and keys cut too — but only while the hero is on screen, and
+     never when the pointer is on the nav or a link. */
   useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
     const onKey = (e: KeyboardEvent) => {
+      const el = document.activeElement;
+      if (el && el !== document.body) return; // don't hijack a focused control
       if (e.key === "ArrowLeft") cut(-1);
-      else if (e.key === "ArrowRight" || e.key === " ") cut(1);
+      else if (e.key === "ArrowRight") cut(1);
     };
-    const onClick = () => cut(1);
+    const onDown = () => cut(1);
+
     window.addEventListener("keydown", onKey);
-    window.addEventListener("pointerdown", onClick);
+    stage.addEventListener("pointerdown", onDown);
     return () => {
       window.removeEventListener("keydown", onKey);
-      window.removeEventListener("pointerdown", onClick);
+      stage.removeEventListener("pointerdown", onDown);
     };
   }, [cut]);
 
   return (
-    <>
+    <section
+      ref={stageRef}
+      className="relative overflow-hidden"
+      style={{ height: "var(--vh)" }}
+      aria-label="MRTX CLUB"
+    >
       {/* The page itself — ink on paper. */}
-      <div className="fixed inset-0 z-[1]">
-        <HeroPlane
-          material={material}
-          index={mi}
-          parts={parts}
-          variant="base"
-        />
-      </div>
+      <HeroPlane material={material} index={mi} parts={parts} variant="base" />
 
       {/* The aperture. */}
       <div ref={bandRef} id="band" aria-hidden>
@@ -173,14 +184,13 @@ export function Hero() {
           />
           <div
             className="mrtx-lit"
-            data-finish={material.finish}
             style={{
               color: material.light
                 ? "var(--color-white)"
                 : "var(--color-ink)",
               // §6: each material meets the mark through its own blend
               // mode, so the mark isn't sitting ON the material — it's
-              // made of it. `null` (KNOCKOUT) punches straight through.
+              // made of it. KNOCKOUT (null) punches straight through.
               ["--finish" as string]: material.blend ?? "normal",
             }}
           >
@@ -195,7 +205,7 @@ export function Hero() {
       </div>
 
       <CursorRain bandY={bandY} bandH={bandH} />
-    </>
+    </section>
   );
 }
 

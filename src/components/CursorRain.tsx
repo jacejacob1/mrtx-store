@@ -22,10 +22,10 @@ type Drop = {
 
 type Props = {
   /**
-   * Live band position, in px from the top of the viewport. Read every
+   * Live band position in px from the top of the hero. Read every
    * frame so a glyph burns white the instant it crosses into the
-   * aperture. A ref rather than a prop because this changes ~60×/sec
-   * and must not re-render React.
+   * aperture. A ref rather than a prop because it changes ~60x/sec and
+   * must not re-render React.
    */
   bandY: RefObject<number>;
   bandH: RefObject<number>;
@@ -34,33 +34,43 @@ type Props = {
 /**
  * Matrix rain falling FROM the pointer — CLAUDE.md §8.
  *
- * The real system cursor stays visible. Hiding it was tried and it made
- * the email field feel broken.
+ * The real system cursor stays visible. Hiding it was tried on the
+ * coming-soon page and it made the email field feel broken.
  *
- * Never initialises on coarse pointers: `(hover: hover) and
- * (pointer: fine)` only. On touch it's invisible battery drain.
+ * Scoped to the hero rather than the whole document: §5 bans this kind
+ * of motion "anywhere the user is trying to read, choose, or pay", and
+ * a fixed canvas would follow the reader into the shop.
+ *
+ * Never initialises on coarse pointers — `(hover: hover) and
+ * (pointer: fine)` only. On touch it is invisible battery drain.
  */
 export function CursorRain({ bandY, bandH }: Props) {
   const ref = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
-    // §8 + §7: no rain on touch, no rain under reduced motion.
     const fine = window.matchMedia("(hover: hover) and (pointer: fine)");
     const calm = window.matchMedia("(prefers-reduced-motion: reduce)");
     if (!fine.matches || calm.matches) return;
 
     const canvas = ref.current;
-    if (!canvas) return;
+    const host = canvas?.parentElement;
+    if (!canvas || !host) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    let w = 0;
+    let h = 0;
     let dpr = 1;
+
     const resize = () => {
+      const r = host.getBoundingClientRect();
+      w = r.width;
+      h = r.height;
       dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.floor(window.innerWidth * dpr);
-      canvas.height = Math.floor(window.innerHeight * dpr);
-      canvas.style.width = `${window.innerWidth}px`;
-      canvas.style.height = `${window.innerHeight}px`;
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
     };
     resize();
 
@@ -69,22 +79,31 @@ export function CursorRain({ bandY, bandH }: Props) {
     let py = -1e4;
     let speed = 0;
     let raf = 0;
+    let inside = false;
 
     const onMove = (e: PointerEvent) => {
-      const dx = e.clientX - px;
-      const dy = e.clientY - py;
-      if (px > -1e3) speed = Math.min(Math.hypot(dx, dy), 60);
-      px = e.clientX;
-      py = e.clientY;
+      const r = host.getBoundingClientRect();
+      inside =
+        e.clientY >= r.top &&
+        e.clientY <= r.bottom &&
+        e.clientX >= r.left &&
+        e.clientX <= r.right;
+      if (!inside) return;
+      const nx = e.clientX - r.left;
+      const ny = e.clientY - r.top;
+      if (px > -1e3) speed = Math.min(Math.hypot(nx - px, ny - py), 60);
+      px = nx;
+      py = ny;
     };
 
     const spawn = (now: number) => {
+      if (!inside) return;
       // §8: move faster → rain harder.
       const n = speed > 26 ? 3 : speed > 10 ? 2 : speed > 1.5 ? 1 : 0;
       for (let i = 0; i < n && drops.length < MAX; i++) {
         drops.push({
-          // §8: spawn 5px right and 15px below the hotspot, so the
-          // arrow never covers the glyphs.
+          // §8: spawn 5px right and 15px below the hotspot so the arrow
+          // never covers the glyphs, snapped to the column grid.
           x: Math.round((px + 5) / COL) * COL + (i - 1) * COL,
           y: py + 15,
           vy: 0.11 + Math.random() * 0.13,
@@ -105,7 +124,7 @@ export function CursorRain({ bandY, bandH }: Props) {
       spawn(now);
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      ctx.clearRect(0, 0, w, h);
       ctx.font = `${SIZE}px ui-monospace, SFMono-Regular, Menlo, monospace`;
       ctx.textBaseline = "top";
 
@@ -115,7 +134,7 @@ export function CursorRain({ bandY, bandH }: Props) {
       for (let i = drops.length - 1; i >= 0; i--) {
         const d = drops[i];
         const age = now - d.born;
-        if (age > LIFE || d.y > window.innerHeight + 40) {
+        if (age > LIFE || d.y > h + 40) {
           drops.splice(i, 1);
           continue;
         }
@@ -123,21 +142,17 @@ export function CursorRain({ bandY, bandH }: Props) {
         if (d.head && age > 90) d.head = false;
 
         const fade = 1 - age / LIFE;
-
         // §8: blue over paper, burning WHITE the instant a glyph
         // crosses into the aperture.
-        const inside = d.y + SIZE > top && d.y < bottom;
-        ctx.fillStyle = inside
+        const lit = d.y + SIZE > top && d.y < bottom;
+
+        ctx.fillStyle = lit
           ? `rgba(255,255,255,${fade})`
           : `rgba(37,99,235,${fade * 0.85})`;
 
         // §8: the head glyph of each column gets an 8px glow.
-        if (d.head) {
-          ctx.shadowBlur = 8;
-          ctx.shadowColor = inside ? "#FFFFFF" : "#2563EB";
-        } else {
-          ctx.shadowBlur = 0;
-        }
+        ctx.shadowBlur = d.head ? 8 : 0;
+        if (d.head) ctx.shadowColor = lit ? "#FFFFFF" : "#2563EB";
 
         ctx.fillText(d.ch, d.x, d.y);
       }
@@ -158,12 +173,8 @@ export function CursorRain({ bandY, bandH }: Props) {
   }, [bandY, bandH]);
 
   return (
-    <canvas
-      ref={ref}
-      // §11: decorative canvas is aria-hidden and pointer-events:none.
-      aria-hidden
-      className="pointer-events-none fixed inset-0 z-[8]"
-    />
+    // §11: decorative canvas is aria-hidden and pointer-events:none.
+    <canvas ref={ref} aria-hidden className="pointer-events-none absolute inset-0 z-[8]" />
   );
 }
 
