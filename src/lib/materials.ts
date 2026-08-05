@@ -63,9 +63,45 @@ export const MATERIALS: readonly Material[] = [
   { id: "grain",  name: "grain",          finish: "HALO",      blend: "luminosity",  hex: "#2563EB", light: false, contrast: 6.4,  reads: "same blue, lit" },
 ] as const;
 
-/** §7: auto-advance every 2400ms. Faster is annoying, slower loses the
- *  stop-motion feel. Cuts are cuts — hard frame changes, never fades. */
-export const CUT_INTERVAL_MS = 2400;
+/** Cuts are cuts — hard frame changes, never fades.
+ *
+ *  §7 specifies 2400ms. Set to 2500ms at Jace's request. The difference
+ *  is inaudible; the rule that matters is that it's a cut. */
+export const CUT_INTERVAL_MS = 2500;
+
+/**
+ * What colour SMALL TYPE must be over a given material.
+ *
+ * This is NOT the same question as `light`, which governs how the MARK
+ * blends. §6 law 1: finishes apply to display type only — small type
+ * never blends, it stays solid and has to clear 4.5:1 on its own.
+ *
+ * Computed rather than assumed, and the two disagree in two places:
+ * over `rock` the mark reads white but small type must be ink (5.65:1
+ * versus white's 3.36:1), and the same is true of `sphere`. Taking
+ * `light` for both would have shipped two failing materials.
+ *
+ * Verified: with this switch all ten materials clear 4.5:1.
+ */
+const TYPE_ON: Record<string, "ink" | "white"> = {
+  rock: "ink",      // ink 5.65 : white 3.36
+  marble: "ink",    // ink 13.30
+  slab: "white",    // white 6.47
+  grid: "white",    // white 4.71
+  orbit: "white",   // white 18.88
+  ink: "ink",       // ink 16.19
+  flux: "white",    // white 5.17
+  silk: "ink",      // ink 14.91
+  sphere: "ink",    // ink 5.76 : white 3.30
+  grain: "white",   // white 5.17
+};
+
+export const typeColorOn = (id: string): string =>
+  TYPE_ON[id] === "white" ? "var(--color-white)" : "var(--color-ink)";
+
+/** Same decision, as a raw hex — the rain canvas can't read CSS vars. */
+export const typeHexOn = (id: string): string =>
+  TYPE_ON[id] === "white" ? "#FFFFFF" : "#101014";
 
 export const texturePath = (id: string) => `/assets/tx/${id}.webp`;
 

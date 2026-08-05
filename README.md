@@ -89,6 +89,34 @@ measurement, not review:
   `--line`. `--line` is 1.20:1 on paper — correct for a decorative
   section rule, invisible as a form field edge under WCAG 1.4.11.
 
+## The home hero is a deliberate departure from §5
+
+§5 makes the aperture the signature device — a narrow band tracking the
+cursor with a duplicate page copy behind it. Home does the opposite: the
+material fills the viewport, fixed, with no pointer tracking, hard-
+cutting every 2.5s. This was Jace's call and it is arguably closer to
+the launch film, which is full-frame match cuts; the slit was the
+landing page's interpretation of that, not the source.
+
+The aperture is not gone from the system. It still runs on `/404`, and
+the slit sweep still runs on product hover (§14).
+
+Three consequences worth knowing:
+
+- **The duplicate page copy is gone.** With no slit there is nothing to
+  develop the artwork through, so there is nothing to duplicate — and
+  the whole `inert` / `aria-hidden` / duplicate-id hazard §5 warns about
+  goes with it.
+- **Everything below the hero paints solid paper.** §6 forbids materials
+  "behind body copy, tables, forms, or anything with a price", and the
+  drop grid is all price. The material is visible at the hero and
+  nowhere a number is.
+- **Small type switches colour per material.** §6 law 1: small type
+  never blends. `material.light` governs how the *mark* blends and is
+  the wrong answer for type — over `rock` the mark reads white but text
+  needs ink (5.65:1 versus white's 3.36:1), same for `sphere`. See
+  `typeColorOn` in `materials.ts`; all ten measured, all ten clear 4.5:1.
+
 ## Not done yet
 
 - **Product pages are one shared template.** Four bespoke per-design

@@ -130,112 +130,68 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   §5 THE APERTURE
+   HOME BACKDROP — full-bleed material, fixed, hard-cutting
 
-   #band        fixed, height var(--band-h), overflow:hidden,
-                translate3d(0, y, 0)
-     #bandInner height var(--vh), translate3d(0, -y, 0)
-       #tex     the material, translate3d(-drift, y, 0)
-       .mrtx-lit the duplicate page copy
+   DEVIATION FROM §5, ON PURPOSE. §5 makes the aperture the signature
+   device: a narrow band tracking the cursor with a duplicate page copy
+   behind it. Jace asked for the opposite on home — the material
+   filling the whole viewport, fixed, no pointer tracking, cutting
+   every 2.5s. The aperture still runs on 404, and the slit sweep still
+   runs on product pages (§14), so the device survives in the system.
 
-   Two stacked transforms and an overflow:hidden. Nothing repaints —
-   it is all compositor work. Do NOT reimplement with a per-frame
-   clip-path; that repaints and drops frames on mid-range Android.
+   The band, its inner counter-transform and the duplicate `.mrtx-lit`
+   plane are all gone — with no slit there is nothing to develop the
+   artwork through, so there is nothing to duplicate. That also removes
+   the entire inert / aria-hidden / duplicate-id hazard §5 warns about.
+
+   Isolation now lives on the fixed wrapper in Hero.tsx: §12 still
+   applies — the material must share an isolated group with the mark or
+   mix-blend-mode silently does nothing.
    ══════════════════════════════════════════════════════════════════ */
 
-/* Absolute, not fixed. The store scrolls, and §5 bans the aperture
-   "anywhere the user is trying to read, choose, or pay" — a fixed band
-   would follow the reader down into the listing. Scoped to the hero
-   section, it simply scrolls away. */
-#band {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: var(--band-h);
-  z-index: 5;
-  overflow: hidden;
-  will-change: transform;
-
-  /* §12, load-bearing. The band tracks the cursor, so it is always
-     directly under it. Without this it swallows every click before the
-     element beneath receives one — the email field on the coming-soon
-     page appeared completely broken and the field was fine. */
-  pointer-events: none;
-}
-
-#bandInner {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: var(--vh);
-  will-change: transform;
-
-  /* §12, load-bearing. mix-blend-mode only blends with the backdrop
-     inside its own isolated group. If #tex were a SIBLING of the mark
-     rather than living in here with it, all ten finishes would
-     silently do nothing — no error, no warning, just a flat mark. */
-  isolation: isolate;
-}
-
-#tex {
-  position: absolute;
-  inset: -50%;
+.matbg {
   background-repeat: repeat;
-  /* §6: 192px slices mirrored into 384×152 tiles, so they repeat
+  /* §6: 192px slices mirrored into 384x152 tiles, so they repeat
      seamlessly at native resolution at any width. Verified against the
      actual files. Do not resize — it breaks the tiling. */
   background-size: 384px 152px;
-  will-change: transform;
-}
-
-.mrtx-lit {
-  position: absolute;
-  inset: 0;
-  height: var(--vh);
 }
 
 /* §6: each material meets the mark through its own blend mode, so the
    mark isn't sitting ON the material — it's made of it. */
-.mrtx-lit .mrtx-mark {
+.mrtx-mark {
   mix-blend-mode: var(--finish, normal);
 }
 
 /* §6 law 3: always provide a fallback. An old browser should get
    something plain, not something half-invisible. */
 @supports not (mix-blend-mode: multiply) {
-  .mrtx-lit .mrtx-mark {
-    mix-blend-mode: normal;
-  }
+  .mrtx-mark { mix-blend-mode: normal; }
 }
 
-/* §7: the shutter jolt after a cut — 260ms, decaying. Implemented as
-   a one-frame blowout on a pseudo-element rather than on #band itself:
-   a CSS animation on transform would override the inline transform the
-   rAF loop writes each frame, and the band would jump out of place.
-   Opacity only, per §10 — never animate anything but transform and
+/* §7: cuts are CUTS. The one-frame blowout that fires on each cut —
+   260ms, decaying. The material div carries a React key, so it
+   remounts on every cut and this replays without any JS.
+
+   Opacity only, per §10: never animate anything but transform and
    opacity. */
-#bandInner::after {
+.matbg::after {
   content: "";
   position: absolute;
   inset: 0;
   background: var(--color-white);
   opacity: 0;
   pointer-events: none;
+  animation: blowout 260ms var(--ease-mrtx);
 }
 
-#band.jolt #bandInner::after {
-  animation: blowout 260ms var(--ease-mrtx);
+@media (prefers-reduced-motion: reduce) {
+  .matbg::after { animation: none; }
 }
 
 @keyframes blowout {
   from { opacity: .82; }
   to   { opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #band.jolt #bandInner::after { animation: none; }
 }
 
 /* ══════════════════════════════════════════════════════════════════
