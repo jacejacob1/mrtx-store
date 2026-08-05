@@ -58,17 +58,22 @@ webpack builds of a page with zero client components. The budget as
 written is unreachable with this framework. See the Phase 0 notes for
 the options; do not quietly ignore the number.
 
-Measured baseline, static `/`, gzipped:
+Measured on `/`, gzipped:
 
-| | |
-|---|---|
-| HTML | 2.4 KB |
-| CSS | 2.2 KB |
-| JS (modern browsers) | 128.9 KB |
-| JS (`noModule` polyfills, skipped by modern browsers) | 39.5 KB |
+| | Phase 0 | Phase 1 |
+|---|---|---|
+| HTML | 2.4 KB | 2.7 KB |
+| CSS | 2.2 KB | 2.8 KB |
+| JS (modern browsers) | 128.9 KB | 133.7 KB |
+| JS (`noModule` polyfills, skipped by modern browsers) | 39.5 KB | 38.6 KB |
+
+Phase 1 added the aperture, the cursor rain, the material cuts and the
+countdown for **+4.8 KB**. The 43 KB overage is entirely framework, not
+application code — which is the argument for amending the number rather
+than cutting features.
 
 ## Not done yet
 
-Phase 0 is the foundation only. The home page is a holding page — the
-aperture, the cursor rain and the material cuts are Phase 1. There is no
-catalogue, no cart, no checkout.
+The home page is the hero only. §14 also calls for a drop and a lookbook
+strip below it; both need a catalogue and photography, so per §16 they
+are omitted rather than faked. There is no shop, no cart, no checkout.
