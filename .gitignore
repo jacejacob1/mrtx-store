@@ -1,0 +1,7 @@
+.DS_Store
+*.local
+.vercel
+
+# leftovers from the old React build — nothing here needs them now
+node_modules
+dist
