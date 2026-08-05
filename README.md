@@ -30,8 +30,36 @@ python3 -m http.server 8000
 
 ## Deploy it
 
-Drag the folder onto Netlify, Vercel, Cloudflare Pages, or push to GitHub Pages.
-No build command, no output directory. It's static.
+Drag the folder onto Netlify, Cloudflare Pages, or push to GitHub Pages. No
+build command, no output directory. It's static.
+
+### vercel.json — don't delete the top four keys
+
+This project used to be React + Vite, and the Vercel project still has
+`vite build` saved as a Build Command override. There's no `package.json` any
+more, so that command dies with `vite: command not found` (exit 127). These four
+keys override the dashboard and keep it overridden:
+
+```json
+"framework": null,
+"installCommand": "",
+"buildCommand": "echo 'static site - nothing to build'",
+"outputDirectory": "."
+```
+
+Two things that look wrong but aren't:
+
+- **`buildCommand` is a pointless-looking `echo` rather than `null` or `""`.**
+  Per Vercel's schema, `null` means *"this value will be automatically
+  detected"* — it would fall straight back to `vite build`. An `echo` exits 0,
+  does nothing, and says so in the build log.
+- **There are no comments in this file.** `vercel.json` is validated against
+  `openapi.vercel.sh/vercel.json`, whose root is `additionalProperties: false`.
+  Even a `"//"` key fails the build with *"should NOT have additional property"*.
+  Hence this section existing here instead.
+
+The rest of the file sets a week of caching on `/assets/*` with
+stale-while-revalidate, plus `nosniff`, `Referrer-Policy` and `X-Frame-Options`.
 
 ---
 
