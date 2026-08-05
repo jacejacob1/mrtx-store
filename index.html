@@ -119,7 +119,8 @@ body{
    rock/orbit/silk/sphere/splatter. The soft halo covers the
    high-contrast materials that are bright and dark at once. */
 .lit .eyebrow,.lit .tag i,.lit .tag b,.lit .field input,.lit .field button,
-.lit .said-a,.lit .said-b,.lit .hud,.lit .hud b{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.55)}
+.lit .said-a,.lit .said-b,.lit .hud,.lit .hud b,
+.lit .unit b,.lit .unit i,.lit .colon{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.55)}
 .lit .hud .k{color:rgba(255,255,255,.62)}
 .lit .dot{background:#fff}
 .lit .field{border-color:rgba(255,255,255,.55)}
@@ -128,6 +129,7 @@ body{
 #band.ink .lit .eyebrow,#band.ink .lit .tag i,#band.ink .lit .tag b,
 #band.ink .lit .field input,#band.ink .lit .field button,
 #band.ink .lit .said-a,#band.ink .lit .said-b,
+#band.ink .lit .unit b,#band.ink .lit .unit i,#band.ink .lit .colon,
 #band.ink .lit .hud,#band.ink .lit .hud b{color:var(--ink);text-shadow:0 1px 4px rgba(255,255,255,.75)}
 #band.ink .lit .hud .k{color:var(--blue)}
 #band.ink .lit .dot{background:var(--blue)}
@@ -239,6 +241,21 @@ body{
               font:600 13px/1 ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
               letter-spacing:.16em;padding:4px 2px;transition:color .25s,transform .25s var(--ease)}
 .field button:hover{color:var(--blue);transform:translateX(3px)}
+/* ── countdown ─────────────────────────────────────────────────
+   tabular-nums is what stops the whole row twitching sideways
+   every time a digit changes width. */
+.clock{display:flex;align-items:flex-start;justify-content:center;
+       gap:clamp(6px,1.1vw,14px);
+       font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+       font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.unit{display:flex;flex-direction:column;align-items:center;gap:6px}
+.unit b{font-size:clamp(22px,3.5vw,40px);font-weight:600;line-height:1;
+        letter-spacing:.01em;color:var(--ink)}
+.unit i{font-style:normal;font-size:8.5px;font-weight:500;letter-spacing:.22em;
+        text-transform:uppercase;color:var(--mute)}
+.colon{font-size:clamp(20px,3.1vw,34px);font-weight:400;line-height:1.05;
+       color:var(--mute);opacity:.4}
+
 .said{display:flex;flex-direction:column;align-items:center;gap:6px;
       min-height:30px;text-transform:uppercase;
       font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
@@ -276,6 +293,7 @@ body.neg #grain{mix-blend-mode:screen;opacity:.22}
 .stack>*:nth-child(3){animation-delay:.30s}
 .stack>*:nth-child(4){animation-delay:.60s}
 .stack>*:nth-child(5){animation-delay:.70s}
+.stack>*:nth-child(6){animation-delay:.78s}
 .hud{animation-delay:.9s}
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
@@ -313,6 +331,9 @@ body.neg #grain{mix-blend-mode:screen;opacity:.22}
   .stack{gap:clamp(8px,2vh,16px)}
   .eyebrow{font-size:9px}
   .tag{font-size:clamp(13px,3vh,18px);column-gap:clamp(6px,1.2vw,12px)}
+  .unit b{font-size:clamp(18px,5vh,28px)}
+  .colon{font-size:clamp(16px,4.4vh,24px)}
+  .unit{gap:4px}
   .said{display:none}
 }
 
@@ -344,6 +365,16 @@ body.neg #grain{mix-blend-mode:screen;opacity:.22}
                spellcheck="false" placeholder="your@email.com" aria-label="Email address">
         <button type="submit">JOIN</button>
       </form>
+      <div class="clock" role="timer" aria-label="Time until launch">
+        <span class="unit"><b class="cd-d">000</b><i>days</i></span>
+        <span class="colon">:</span>
+        <span class="unit"><b class="cd-h">00</b><i>hrs</i></span>
+        <span class="colon">:</span>
+        <span class="unit"><b class="cd-m">00</b><i>min</i></span>
+        <span class="colon">:</span>
+        <span class="unit"><b class="cd-s">00</b><i>sec</i></span>
+      </div>
+
       <p class="said" role="status" aria-live="polite">
         <span class="said-a"></span><span class="said-b"></span>
       </p>
@@ -351,7 +382,7 @@ body.neg #grain{mix-blend-mode:screen;opacity:.22}
 
     <div class="hud tl"><b>MRTX</b> CLUB</div>
     <div class="hud tr">IDX 001 <span class="k sep">/</span> SS26</div>
-    <div class="hud bl">T&minus;<b class="cd">000:00:00:00</b></div>
+    <div class="hud bl"><span class="drop"></span></div>
     <div class="hud br"><span class="matn">MAT.01</span>
       <span class="k fin">CHISEL</span><span class="hex"> <span class="mathex">#8C8C8C</span></span></div>
   </div>
@@ -376,7 +407,8 @@ var CONFIG = {
 
   // ▶ 1. THE DROP. 14 August 2026, 12:00 noon, India time.
   //      ISO 8601 — +05:30 is IST. Change the date, keep the shape.
-  LAUNCH: "2026-08-14T12:00:00+05:30",
+  LAUNCH:    "2026-08-14T12:00:00+05:30",
+  TZ_LABEL:  "IST",    // shown next to the drop date, bottom-left
 
   // ▶ 2. WHERE EMAILS GO — your Google Form, which fills your Sheet.
   //      Both of these are in the README, section "Collecting emails".
@@ -567,19 +599,35 @@ requestAnimationFrame(frame);
 /* ── countdown ─────────────────────────────────────────────── */
 var target = new Date(CONFIG.LAUNCH).getTime();
 
+function clock(dd, hh, mm, ss){
+  write(".cd-d", dd); write(".cd-h", hh);
+  write(".cd-m", mm); write(".cd-s", ss);
+}
+
 function tick(){
-  if(isNaN(target)){ write(".cd", "SET DATE IN CONFIG"); return; }
+  if(isNaN(target)){ clock("---", "--", "--", "--"); return; }
   var d = target - Date.now();
-  if(d <= 0){ write(".cd", "000:00:00:00"); return; }
+  if(d <= 0){ clock("000", "00", "00", "00"); return; }
   var s = Math.floor(d / 1000);
-  write(".cd",
-    String(Math.floor(s / 86400)).padStart(3, "0") + ":" +
-    String(Math.floor(s / 3600) % 24).padStart(2, "0") + ":" +
-    String(Math.floor(s / 60) % 60).padStart(2, "0") + ":" +
-    String(s % 60).padStart(2, "0"));
+  clock(
+    String(Math.floor(s / 86400)).padStart(3, "0"),
+    String(Math.floor(s / 3600) % 24).padStart(2, "0"),
+    String(Math.floor(s / 60) % 60).padStart(2, "0"),
+    String(s % 60).padStart(2, "0")
+  );
 }
 tick();
 setInterval(tick, 1000);
+
+/* The clock says how long. This says when — read straight off the
+   LAUNCH string so the two can never drift apart. */
+(function(){
+  var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(CONFIG.LAUNCH);
+  write(".drop", m
+    ? "drop " + m[3] + "." + m[2] + "." + m[1].slice(2) +
+      "  " + m[4] + ":" + m[5] + " " + CONFIG.TZ_LABEL
+    : "launch date not set");
+})();
 
 /* ── waitlist ──────────────────────────────────────────────── */
 var form = $("#form"), mail = $("#mail");
