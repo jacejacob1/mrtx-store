@@ -172,6 +172,49 @@ body {
    reads as a vignette rather than a bar.
    ══════════════════════════════════════════════════════════════════ */
 
+/* ══════════════════════════════════════════════════════════════════
+   THEME: INK — §2's dark column
+
+   Each design gets its own world. `theme-ink` flips the four ground
+   tokens, so every existing component works inside it unchanged —
+   `text-ink`, `bg-paper` and `border-line` all keep meaning "text",
+   "ground" and "hairline" rather than naming a literal colour.
+
+   The values are NOT §2's dark column verbatim, because two of them
+   fail when measured:
+
+     mute  §2 dark #6E6E78 on #0B0B0D = 3.90:1  — fails §11's 4.5
+           used here  #83838C          = 5.23:1  — passes
+
+   Note what that means: §2's LIGHT mute (#83838C) is the correct DARK
+   value, and the amended light value (#6B6B74) is correct on paper.
+   The two columns were effectively swapped. Still six colours; each
+   just has a light and a dark form, which is what §2 intended.
+
+   line #26262C is 1.31:1 and stays decorative-only. Control boundaries
+   inside this theme use --color-mute at 5.23:1, clearing 1.4.11's 3:1.
+   ══════════════════════════════════════════════════════════════════ */
+
+.theme-ink {
+  --color-paper: #0B0B0D;
+  --color-ink:   #F4F4F2;
+  --color-mute:  #83838C;
+  --color-line:  #26262C;
+
+  background: var(--color-paper);
+  color: var(--color-ink);
+  color-scheme: dark;
+}
+
+/* Controls need a visible edge; --line is 1.31:1 in this theme. */
+.theme-ink .chip { border-color: var(--color-mute); }
+
+.theme-ink .chip[aria-pressed="true"] {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
 .hero-scrim {
   position: absolute;
   inset: 0;

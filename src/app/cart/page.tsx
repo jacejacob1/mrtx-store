@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ProductMedia } from "@/components/ProductMedia";
+import { ProductArt } from "@/components/ProductArt";
 import { useCartTotals, setQty, removeLine } from "@/lib/cart";
 import { formatINR } from "@/lib/money";
 import { variantFor } from "@/lib/products";
@@ -60,10 +60,7 @@ export default function CartPage() {
                   tabIndex={-1}
                   aria-hidden
                 >
-                  <ProductMedia
-                    materialId={l.product.material}
-                    alt={l.product.alt}
-                  />
+                  <ProductArt product={l.product} sizes="84px" />
                 </Link>
 
                 <div className="flex flex-1 flex-col justify-between gap-3">

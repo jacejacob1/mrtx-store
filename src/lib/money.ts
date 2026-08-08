@@ -58,6 +58,31 @@ export function splitGst(gross: Paise): GstSplit {
  * and a ₹3,200 jacket in the same cart attract different rates, and
  * splitting the total would silently apply one rate to both.
  */
+/**
+ * Launch pricing.
+ *
+ * §14 bans badges and "SALE" starbursts, and it is right to. But a real
+ * launch price is a fact, not a manufactured urgency device, and hiding
+ * it would cost Jace money on the drop that matters most. The
+ * resolution: state it the way this brand states every other number —
+ * mono, the old figure struck through, no colour, no badge, no
+ * countdown-to-the-end-of-the-offer. The discount is information, not
+ * decoration.
+ *
+ * Returns null when there is no offer, so callers render nothing rather
+ * than a zero.
+ */
+export function discount(
+  price: Paise,
+  mrp: Paise | null,
+): { saved: Paise; percent: number } | null {
+  if (mrp === null || mrp <= price) return null;
+  return {
+    saved: mrp - price,
+    percent: Math.round(((mrp - price) / mrp) * 100),
+  };
+}
+
 export function splitOrderGst(
   lines: { unit: Paise; qty: number }[],
 ): { taxable: Paise; tax: Paise; gross: Paise; rates: number[] } {

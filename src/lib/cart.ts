@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { PRODUCTS, type Size, type Product } from "@/lib/products";
+import { LIVE, type Size, type Product } from "@/lib/products";
 import { splitOrderGst, type Paise } from "@/lib/money";
 import {
   FREE_SHIPPING_THRESHOLD,
@@ -63,7 +63,7 @@ function hydrate() {
         typeof (l as Line).slug === "string" &&
         typeof (l as Line).qty === "number" &&
         (l as Line).qty > 0 &&
-        PRODUCTS.some(
+        LIVE.some(
           (p) =>
             p.slug === (l as Line).slug &&
             p.variants.some((v) => v.size === (l as Line).size),
@@ -129,7 +129,7 @@ export function addToCart(
 }
 
 export function setQty(slug: string, size: Size, qty: number) {
-  const product = PRODUCTS.find((p) => p.slug === slug);
+  const product = LIVE.find((p) => p.slug === slug);
   const stock = product ? (variantFor(product, size)?.stock ?? 0) : 0;
   const clamped = Math.max(0, Math.min(qty, stock));
 
@@ -159,7 +159,7 @@ export type CartLine = Line & { product: Product; unit: Paise; total: Paise };
 
 export function resolve(ls: Line[]): CartLine[] {
   return ls.flatMap((l) => {
-    const product = PRODUCTS.find((p) => p.slug === l.slug);
+    const product = LIVE.find((p) => p.slug === l.slug);
     if (!product) return [];
     return [
       {

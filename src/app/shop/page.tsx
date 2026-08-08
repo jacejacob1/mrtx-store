@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { ProductCard } from "@/components/ProductCard";
-import { PRODUCTS } from "@/lib/products";
+import { LIVE } from "@/lib/products";
 
 export const metadata: Metadata = {
   title: "Shop",
-  description: "SS26. Four pieces. Oversized, 240–260gsm, cut in Tirupur.",
+  description: "SS26. ORIGIN — remember why you started. 240gsm, cut in Tirupur.",
 };
 
 /**
@@ -32,13 +32,13 @@ export default function ShopPage() {
           the drop
         </h1>
         <p className="mt-4 max-w-[46ch] text-[15px] text-ink">
-          four pieces. oversized, boxy, drop shoulder. cut and sewn in
-          tirupur.
+          oversized, boxy, drop shoulder. 240gsm combed cotton, cut and
+          sewn in tirupur. more of the drop lands before the 14th.
         </p>
       </header>
 
-      <div className="mt-12 grid grid-cols-2 gap-x-5 gap-y-14">
-        {PRODUCTS.map((p) => (
+      <div className="mt-12 grid gap-x-5 gap-y-14 sm:grid-cols-2">
+        {LIVE.map((p) => (
           <ProductCard key={p.slug} product={p} />
         ))}
       </div>

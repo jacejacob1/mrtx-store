@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Hero } from "@/components/Hero";
 import { ProductCard } from "@/components/ProductCard";
-import { PRODUCTS } from "@/lib/products";
+import { LIVE } from "@/lib/products";
 import { MATERIALS, texturePath } from "@/lib/materials";
 
 /**
@@ -30,12 +30,12 @@ export default function Home() {
           <div className="flex items-baseline justify-between gap-6 border-b border-line pb-6">
             <h2 className="label text-mute">THE DROP / SS26</h2>
             <Link href="/shop" className="mono text-readout text-ink">
-              all four →
+              see the drop →
             </Link>
           </div>
 
-          <div className="mt-10 grid grid-cols-2 gap-x-5 gap-y-14">
-            {PRODUCTS.map((p) => (
+          <div className="mt-10 grid gap-x-5 gap-y-14 sm:grid-cols-2">
+            {LIVE.map((p) => (
               <ProductCard key={p.slug} product={p} />
             ))}
           </div>
