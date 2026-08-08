@@ -7,6 +7,7 @@ import { Price } from "@/components/Price";
 import { LIVE, productBySlug } from "@/lib/products";
 import { formatINR, splitGst, discount } from "@/lib/money";
 import { GST } from "@/lib/config";
+import { liveStock } from "@/lib/stock";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/products";
 
 type Params = { params: Promise<{ slug: string }> };
@@ -45,6 +46,7 @@ export default async function ProductPage({ params }: Params) {
   const product = productBySlug(slug);
   if (!product) notFound();
 
+  const stock = await liveStock(product);
   const gst = splitGst(product.price);
   const off = discount(product.price, product.mrp);
   const ink = product.theme === "ink";
@@ -87,7 +89,7 @@ export default async function ProductPage({ params }: Params) {
 
             <div className="my-9 border-t border-line" />
 
-            <BuyPanel product={product} />
+            <BuyPanel product={product} stock={stock} />
 
             <div className="my-9 border-t border-line" />
 

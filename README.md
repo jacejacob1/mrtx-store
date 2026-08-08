@@ -117,6 +117,81 @@ Three consequences worth knowing:
   needs ink (5.65:1 versus white's 3.36:1), same for `sphere`. See
   `typeColorOn` in `materials.ts`; all ten measured, all ten clear 4.5:1.
 
+## Payments and shipping
+
+Razorpay takes the money, Supabase holds the order, Shiprocket ships it.
+
+### The flow, and why it is in this order
+
+```
+browser                    server                      razorpay / shiprocket
+───────────────────────────────────────────────────────────────────────────
+cart + address  ──POST──>  /api/checkout
+                           recompute EVERY rupee
+                           from the catalogue
+                           check stock          ──────> create razorpay order
+                           insert orders row
+                <──────── razorpay_order_id
+
+open modal      ─────────────────────────────────────> razorpay checkout
+                                                       customer pays
+
+                           /api/webhooks/razorpay <─── payment.captured
+                           verify HMAC
+                           mark paid (once)
+                           reserve_stock()  ← ATOMIC
+                                                ──────> shiprocket order
+```
+
+**The price never comes from the browser.** The client sends slugs, sizes
+and quantities; everything with a rupee sign is recomputed server-side.
+A checkout that trusts a client-supplied amount can be bought from for
+₹1, and it is the most common way a small store gets drained.
+
+**The webhook is the authority, not the browser.** A customer who pays
+and immediately closes the tab still gets their tee. `/api/payments/verify`
+exists only so the confirmation page can appear straight away.
+
+**Stock is decremented atomically at capture, not at checkout.**
+`reserve_stock()` takes a row lock per SKU in a deterministic order, so
+two people buying the last unit are serialised and the second is refused.
+A multi-line order where one line is short decrements nothing. Reserving
+at checkout instead would let abandoned carts eat a small drop alive.
+
+If someone does lose the race, the order is marked `oversold` rather than
+shipped, and the confirmation page tells them a refund is coming. That
+path needs a human — check for it.
+
+### Verified
+
+- signature verification: valid accepted; tampered payment id, wrong
+  secret and truncated signature all rejected
+- webhook verification uses the **raw** body — re-stringified JSON fails
+  the HMAC, which is why the route uses `req.text()`
+- `reserve_stock` tested for normal, overdraw, partial and unknown-SKU
+- **no secret reaches the browser** — the production client bundle was
+  scanned for all four secrets plus `service_role`; zero hits, and
+  `supabase-js` is not in it at all
+- Supabase advisors clean of warnings
+
+### Not verified
+
+A **live Razorpay API call** — outbound to `api.razorpay.com` is blocked
+from the build sandbox. The request shape follows the documented Orders
+API but has not been exercised against the real service. **Run a test
+order before launch.**
+
+### Ops
+
+- Orders: Supabase → Table Editor → `orders`. Watch `status` and
+  `shiprocket_error`.
+- A failed Shiprocket push is recorded, not swallowed. The payment is
+  safe; re-push by replaying the webhook from the Razorpay dashboard.
+- `stock` in the database is the source of truth. The numbers in
+  `products.ts` are opening stock only and go stale after the first order.
+
+See `.env.example` for every key and where it goes.
+
 ## Not done yet
 
 - **Product pages are one shared template.** Four bespoke per-design

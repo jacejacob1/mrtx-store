@@ -46,3 +46,6 @@ next-env.d.ts
 
 # frame masters live in Drive, not git — only the encoded webp ship
 _design/masters/
+
+# ...but the documented template must ship. It contains no secrets.
+!.env.example

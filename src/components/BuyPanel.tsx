@@ -14,12 +14,19 @@ import { SIZES, type Product, type Size } from "@/lib/products";
  * is never colour-only — every state says what happened in words.
  * §13: errors are dry, not apologetic.
  */
-export function BuyPanel({ product }: { product: Product }) {
+export function BuyPanel({
+  product,
+  stock,
+}: {
+  product: Product;
+  /** Live counts from the database. Falls back to the catalogue. */
+  stock?: Record<Size, number>;
+}) {
   const [size, setSize] = useState<Size | null>(null);
   const [said, setSaid] = useState<string>("");
 
   const stockFor = (s: Size) =>
-    product.variants.find((v) => v.size === s)?.stock ?? 0;
+    stock?.[s] ?? product.variants.find((v) => v.size === s)?.stock ?? 0;
 
   const anyStock = SIZES.some((s) => stockFor(s) > 0);
   const chosenStock = size ? stockFor(size) : 0;
