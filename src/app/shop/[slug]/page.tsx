@@ -69,7 +69,9 @@ export default async function ProductPage({ params }: Params) {
           </div>
 
           <div className="md:pt-2">
-            <p className="label text-mute">MRTX — ORIGIN / EST. 2026</p>
+            <p className="label text-mute">
+              MRTX — {product.name} / EST. 2026
+            </p>
 
             <h1
               className="mt-3 max-w-[12ch] leading-[0.95] font-semibold tracking-[-0.02em] text-ink"
@@ -129,7 +131,10 @@ export default async function ProductPage({ params }: Params) {
           <figure>
             <div
               className="pmedia"
-              style={{ aspectRatio: "1280 / 1646", background: "#0B0B0D" }}
+              style={{
+                aspectRatio: "1280 / 1646",
+                background: ink ? "#0B0B0D" : "#F2F2F0",
+              }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img

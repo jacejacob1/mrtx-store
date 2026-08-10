@@ -40,7 +40,14 @@ export function ProductArt({
   return (
     <div
       className={`pmedia ${sweep ? "pmedia-sweep" : ""}`}
-      style={{ aspectRatio: "1280 / 1646", background: "#0B0B0D" }}
+      style={{
+        aspectRatio: "1280 / 1646",
+        // Matches the ground baked into the files. ORIGIN's artwork is
+        // white on transparency so it sits on ink; the rest are black
+        // on transparency and sit on paper. Getting this wrong shows as
+        // a hairline of the wrong colour around the image.
+        background: product.theme === "ink" ? "#0B0B0D" : "#F2F2F0",
+      }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img

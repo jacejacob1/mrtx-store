@@ -77,25 +77,92 @@ export const PRODUCTS: readonly Product[] = [
     },
   },
 
-  /* ─────────────────────────────────────────────────────────────────
-     Three more pieces are planned. They have no artwork yet, so they
-     are marked draft and render nowhere. §13: never promise something
-     the system doesn't do — a grid padded with placeholders is a
-     promise the drop can't keep.
-     ───────────────────────────────────────────────────────────────── */
   {
-    slug: "two",
-    name: "TBC",
-    tagline: "",
+    slug: "breathe",
+    name: "BREATHE",
+    tagline: "let go.",
     price: 69_900,
     mrp: 120_000,
     theme: "paper",
-    art: { front: "", back: "" },
-    spec: [],
-    body: "",
-    variants: run("MRTX-002", [0, 0, 0, 0, 0]),
-    alt: { front: "", back: "" },
-    draft: true,
+    art: { front: "breathe-front", back: "breathe-back" },
+    spec: [
+      "240gsm combed cotton",
+      "boxy, drop shoulder",
+      "cut and sewn in tirupur",
+      "discharge printed, front and back",
+    ],
+    body: "a lily, and one word set small enough that you have to be close to read it. the back says it loud instead — the same word at the size of the whole garment, hollowed out so the flower sits inside the letters.",
+    variants: run("MRTX-BRT", [6, 16, 20, 12, 5]),
+    alt: {
+      front:
+        "Front print: a greyscale lily with the word breathe set small in outlined type",
+      back: "Back print: BREATHE in tall hollow capitals with a pale blue lily rising through the letters",
+    },
+  },
+  {
+    slug: "fly-high",
+    name: "FLY HIGH",
+    tagline: "no bird soars too high.",
+    price: 69_900,
+    mrp: 120_000,
+    theme: "paper",
+    art: { front: "fly-high-front", back: "fly-high-back" },
+    spec: [
+      "240gsm combed cotton",
+      "boxy, drop shoulder",
+      "cut and sewn in tirupur",
+      "discharge printed, front and back",
+    ],
+    body: "the loudest thing we make. FLY across the chest in red, birds breaking around it. the back is quieter and higher up — one eagle, and HIGH where you'd expect a label.",
+    variants: run("MRTX-FLY", [7, 17, 21, 13, 5]),
+    alt: {
+      front:
+        "Front print: FLY in large red capitals over a flock of birds in flight",
+      back: "Back print: an eagle in flight with HIGH set in red at the shoulder",
+    },
+  },
+  {
+    slug: "solitude",
+    name: "SOLITUDE",
+    tagline: "own lane. own race. own pace.",
+    price: 69_900,
+    mrp: 120_000,
+    theme: "paper",
+    art: { front: "solitude-front", back: "solitude-back" },
+    spec: [
+      "240gsm combed cotton",
+      "boxy, drop shoulder",
+      "cut and sewn in tirupur",
+      "discharge printed, front and back",
+    ],
+    body: "a white tiger with its stripes in red, walking out of the frame. three lines above it that are a instruction, not a boast. the back carries the word alone, curved, small, across the shoulders.",
+    variants: run("MRTX-SOL", [6, 15, 19, 12, 4]),
+    alt: {
+      front:
+        "Front print: a white tiger with red stripes below the words own lane, own race, own pace",
+      back: "Back print: SOLITUDE set in a shallow arc across the shoulders",
+    },
+  },
+  {
+    slug: "be-yourself",
+    name: "BE YOURSELF",
+    tagline: "everyone else is taken.",
+    price: 69_900,
+    mrp: 120_000,
+    theme: "paper",
+    art: { front: "be-yourself-front", back: "be-yourself-back" },
+    spec: [
+      "240gsm combed cotton",
+      "boxy, drop shoulder",
+      "cut and sewn in tirupur",
+      "discharge printed, front and back",
+    ],
+    body: "the quietest front we make — just the mark, small, on the chest. everything is on the back: script and serif stacked into a block you can read across a room.",
+    variants: run("MRTX-BYS", [5, 14, 18, 11, 4]),
+    alt: {
+      front: "Front print: the MRTX mark set small at the chest",
+      back: "Back print: Be yourself, everyone else is taken set in mixed script and serif above the MRTX mark",
+    },
   },
 ] as const;
 
