@@ -2,6 +2,24 @@
 *.local
 .vercel
 
-# leftovers from the old React build — nothing here needs them now
+# dependencies and build output
 node_modules
 dist
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+
+# env — real values never committed; the template is
+.env*
+!.env.example
+
+# SOURCE MEDIA STAYS OUT OF GIT.
+# The shoot alone is several hundred MB of full-resolution JPEG. Run
+# `npm run media` to turn these into web-sized WebP in public/media/ —
+# THOSE are committed and deployed. Keep the originals in Drive.
+/MRTX Shoots/
+/DESIGNS/
+/Backgrounds/
+/[1-9].png
+/[1-9][0-9].png
