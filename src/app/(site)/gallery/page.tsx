@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { DotText } from "@/components/DotText";
 import { Reveal } from "@/components/Reveal";
 import { GalleryView, type Frame } from "@/components/gallery/GalleryView";
-import { PRODUCTS, SHOOT_TAGS, HIDDEN_SHOOTS, productBySlug } from "@/lib/catalogue";
+import { SHOOT_TAGS, HIDDEN_SHOOTS, productBySlug } from "@/lib/catalogue";
+import { getCatalogue } from "@/lib/server/catalogue";
 import { allShoots } from "@/lib/media";
 
 export const metadata: Metadata = {
@@ -10,11 +11,12 @@ export const metadata: Metadata = {
   description: "The MRTX SS26 shoot — every frame.",
 };
 
-export default function GalleryPage() {
+export default async function GalleryPage() {
+  const products = await getCatalogue();
   const frames: Frame[] = allShoots()
     .filter((id) => !HIDDEN_SHOOTS.has(id))
     .map((id) => {
-      const p = SHOOT_TAGS[id] ? productBySlug(SHOOT_TAGS[id]) : undefined;
+      const p = SHOOT_TAGS[id] ? productBySlug(SHOOT_TAGS[id], products) : undefined;
       return { id, product: p ? { slug: p.slug, name: p.name } : null };
     });
 
@@ -34,7 +36,7 @@ export default function GalleryPage() {
             SS26, on the coast and in the trees. Tap any frame to see it whole.
           </p>
         </Reveal>
-        <GalleryView frames={frames} filters={PRODUCTS.map((p) => ({ slug: p.slug, name: p.name }))} />
+        <GalleryView frames={frames} filters={products.map((p) => ({ slug: p.slug, name: p.name }))} />
       </div>
     </section>
   );

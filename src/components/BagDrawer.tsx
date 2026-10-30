@@ -98,7 +98,7 @@ export function BagDrawer() {
                       >
                         <div className="relative aspect-[4/5] w-20 shrink-0 overflow-hidden rounded-xl bg-surface">
                           <Photo
-                            id={r.product.photos[0]}
+                            media={r.product.photos[0]}
                             alt=""
                             sizes="80px"
                             fill
@@ -120,11 +120,11 @@ export function BagDrawer() {
                               qty={r.qty}
                               max={r.product.stock[r.size]}
                               label={`${r.product.name} size ${r.size}`}
-                              onChange={(q) => setQty(r.slug, r.size, q)}
+                              onChange={(q) => setQty(r.slug, r.size, q, r.product.stock[r.size])}
                             />
                             <button
                               type="button"
-                              onClick={() => setQty(r.slug, r.size, 0)}
+                              onClick={() => setQty(r.slug, r.size, 0, 0)}
                               className="t-small text-fg-2 hover:text-fg"
                             >
                               Remove

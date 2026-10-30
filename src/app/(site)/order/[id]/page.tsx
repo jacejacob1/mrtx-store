@@ -7,6 +7,7 @@ import { ClearBag } from "@/components/checkout/ClearBag";
 import { select, type OrderItemRow, type OrderRow } from "@/lib/server/db";
 import { hasDb } from "@/lib/server/env";
 import { productBySlug, RETURN_DAYS } from "@/lib/catalogue";
+import { getCatalogue } from "@/lib/server/catalogue";
 import { formatINR } from "@/lib/money";
 
 export const metadata: Metadata = { title: "Your order", robots: { index: false } };
@@ -37,6 +38,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const [order] = await select<OrderRow[]>("orders", `id=eq.${id}&select=*`);
   if (!order) notFound();
   const items = await select<OrderItemRow[]>("order_items", `order_id=eq.${id}&select=*`);
+  const products = await getCatalogue();
   const [title, line] = HEADLINE[order.status];
   const live = ["confirmed", "cod_pending", "shipped", "delivered"].includes(order.status);
 
@@ -53,11 +55,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
 
         <ul className="mt-14 space-y-5 border-t border-line pt-8">
           {items.map((it) => {
-            const p = productBySlug(it.product_slug);
+            const p = productBySlug(it.product_slug, products);
             return (
               <li key={it.sku} className="flex items-center gap-4">
                 <div className="relative aspect-[4/5] w-16 shrink-0 overflow-hidden rounded-xl bg-surface">
-                  {p && <Photo id={p.photos[0]} alt="" sizes="64px" fill className="object-cover" />}
+                  {p && <Photo media={p.photos[0]} alt="" sizes="64px" fill className="object-cover" />}
                 </div>
                 <div className="flex flex-1 items-baseline justify-between gap-3">
                   <div>

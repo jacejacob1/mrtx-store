@@ -266,7 +266,7 @@ export function CheckoutView() {
             {t.rows.map((r) => (
               <li key={`${r.slug}-${r.size}`} className="flex gap-4">
                 <div className="relative aspect-[4/5] w-16 shrink-0 overflow-hidden rounded-xl">
-                  <Photo id={r.product.photos[0]} alt="" sizes="64px" fill className="object-cover" />
+                  <Photo media={r.product.photos[0]} alt="" sizes="64px" fill className="object-cover" />
                 </div>
                 <div className="flex flex-1 items-baseline justify-between gap-3">
                   <div>

@@ -1,9 +1,11 @@
 import Image from "next/image";
-import { shoot, art, type MediaEntry } from "@/lib/media";
+import { shoot, art, type Media, type MediaEntry } from "@/lib/media";
 
 type Props = {
+  /** A full image record (product photos and art). Takes precedence over id. */
+  media?: Media | null;
   /** A shoot id ("0119") or an artwork key ("remember-back"). */
-  id: string;
+  id?: string;
   kind?: "shoot" | "art";
   /** Real alt text describing what's in the frame — never "image". */
   alt: string;
@@ -27,7 +29,8 @@ type Props = {
  * photo should be visible, not fatal.
  */
 export function Photo({
-  id,
+  media,
+  id = media?.id ?? "",
   kind = "shoot",
   alt,
   sizes,
@@ -36,7 +39,7 @@ export function Photo({
   className,
   style,
 }: Props) {
-  const entry: MediaEntry | null = kind === "art" ? art(id) : shoot(id);
+  const entry: MediaEntry | null = media ?? (kind === "art" ? art(id) : shoot(id));
 
   if (!entry) {
     return (

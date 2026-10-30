@@ -1,7 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Nav } from "@/components/Nav";
-import { Footer } from "@/components/Footer";
-import { BagDrawer } from "@/components/BagDrawer";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,6 +19,11 @@ export const viewport: Viewport = {
   ],
 };
 
+/**
+ * The shell every page shares — the shop (app/(site)) and the admin
+ * (app/admin) alike. Nav, bag and footer belong to the shop only, so
+ * they live in app/(site)/layout.tsx.
+ */
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
@@ -32,10 +34,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         >
           Skip to content
         </a>
-        <Nav />
-        <main id="main">{children}</main>
-        <Footer />
-        <BagDrawer />
+        {children}
       </body>
     </html>
   );

@@ -39,7 +39,7 @@ export function Chapter({ product, flip }: { product: Product; flip: boolean }) 
         <div className="relative aspect-[4/5] overflow-hidden rounded-[32px]">
           <motion.div className="absolute -inset-y-[8%] inset-x-0" style={reduce ? undefined : { y }}>
             <Photo
-              id={product.chapter}
+              media={product.chapter}
               alt={`${product.name} in the MRTX SS26 shoot`}
               sizes="(min-width: 768px) 50vw, 100vw"
               fill

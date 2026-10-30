@@ -4,7 +4,7 @@ import { Photo } from "@/components/Photo";
 import { DotText } from "@/components/DotText";
 import { Reveal } from "@/components/Reveal";
 import { Wordmark } from "@/components/Wordmark";
-import { PRODUCTS } from "@/lib/catalogue";
+import { getCatalogue } from "@/lib/server/catalogue";
 
 export const metadata: Metadata = {
   title: "About",
@@ -13,7 +13,8 @@ export const metadata: Metadata = {
 
 // DRAFT COPY — Jace to rewrite in his own words. Every fact below comes
 // from the catalogue (fabric, fit, origin) or the garments (EST. 2026).
-export default function AboutPage() {
+export default async function AboutPage() {
+  const products = await getCatalogue();
   return (
     <>
       <section data-ground="dark" className="px-5 pt-36 pb-24 md:pt-48 md:pb-32">
@@ -82,7 +83,7 @@ export default function AboutPage() {
             <h2 className="t-display mt-6">Five tees. Five sentences.</h2>
           </Reveal>
           <ul className="mt-14 border-t border-fg/25">
-            {PRODUCTS.map((p) => (
+            {products.map((p) => (
               <li key={p.slug} className="border-b border-fg/25">
                 <Link
                   href={`/shop/${p.slug}`}

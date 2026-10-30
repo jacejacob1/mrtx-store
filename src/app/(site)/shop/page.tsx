@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { ProductCard } from "@/components/ProductCard";
 import { DotText } from "@/components/DotText";
 import { Reveal } from "@/components/Reveal";
-import { PRODUCTS, OFFER_LABEL, FREE_SHIPPING_AT } from "@/lib/catalogue";
+import { GlyphBoard } from "@/components/signature/GlyphBoard";
+import { OFFER_LABEL, FREE_SHIPPING_AT } from "@/lib/catalogue";
+import { getCatalogue } from "@/lib/server/catalogue";
 import { formatINR } from "@/lib/money";
 
 export const metadata: Metadata = {
@@ -14,8 +16,9 @@ export const metadata: Metadata = {
  * The whole drop on one screen. Five products is few enough to show as a
  * 3+2 at desktop — no filters, no sort, nothing to configure.
  */
-export default function ShopPage() {
-  const { price, mrp } = PRODUCTS[0];
+export default async function ShopPage() {
+  const products = await getCatalogue();
+  const { price, mrp } = products[0];
 
   return (
     <section data-ground="light" className="px-5 pt-32 pb-24 md:pt-40 md:pb-32">
@@ -39,8 +42,12 @@ export default function ShopPage() {
           </p>
         </Reveal>
 
+        <Reveal delay={0.2} className="mt-14">
+          <GlyphBoard />
+        </Reveal>
+
         <ul className="mt-16 grid gap-x-6 gap-y-14 sm:grid-cols-2 lg:grid-cols-3 md:mt-20 md:gap-x-8 md:gap-y-20">
-          {PRODUCTS.map((p, i) => (
+          {products.map((p, i) => (
             <li key={p.slug}>
               <Reveal delay={(i % 2) * 0.08}>
                 <ProductCard

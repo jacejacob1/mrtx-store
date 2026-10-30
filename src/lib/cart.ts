@@ -1,7 +1,8 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { PRODUCTS, type Product, type Size, FREE_SHIPPING_AT, SHIPPING_FLAT } from "@/lib/catalogue";
+import { SIZES, type Product, type Size, FREE_SHIPPING_AT, SHIPPING_FLAT } from "@/lib/catalogue";
+import { useCatalogue } from "@/components/CatalogueProvider";
 import { splitGst, type Paise } from "@/lib/money";
 
 export type Line = { slug: string; size: Size; qty: number };
@@ -33,15 +34,16 @@ function hydrate() {
   try {
     const parsed: unknown = JSON.parse(localStorage.getItem(KEY) ?? "[]");
     if (!Array.isArray(parsed)) return;
-    // Drop anything no longer in the catalogue so a stale bag can never
-    // resurrect a discontinued item at checkout.
+    // Keep only well-formed lines. Lines for products that no longer exist
+    // are skipped by totals(), and the server re-checks everything anyway.
     lines = parsed.filter(
       (l): l is Line =>
         !!l &&
         typeof l === "object" &&
+        typeof (l as Line).slug === "string" &&
+        (SIZES as readonly string[]).includes((l as Line).size) &&
         typeof (l as Line).qty === "number" &&
-        (l as Line).qty > 0 &&
-        PRODUCTS.some((p) => p.slug === (l as Line).slug && (l as Line).size in p.stock),
+        (l as Line).qty > 0,
     );
   } catch {
     lines = [];
@@ -85,9 +87,8 @@ export function addToBag(p: Product, size: Size): "added" | "clamped" | "gone" {
   return qty < want ? "clamped" : "added";
 }
 
-export function setQty(slug: string, size: Size, qty: number) {
-  const p = PRODUCTS.find((x) => x.slug === slug);
-  const q = Math.max(0, Math.min(qty, p?.stock[size] ?? 0));
+export function setQty(slug: string, size: Size, qty: number, max: number) {
+  const q = Math.max(0, Math.min(qty, max));
   lines =
     q === 0
       ? lines.filter((l) => !(l.slug === slug && l.size === size))
@@ -100,9 +101,9 @@ export function clearBag() {
   emit();
 }
 
-export function totals(ls: Line[]) {
+export function totals(ls: Line[], products: readonly Product[]) {
   const rows = ls.flatMap((l) => {
-    const product = PRODUCTS.find((p) => p.slug === l.slug);
+    const product = products.find((p) => p.slug === l.slug);
     return product ? [{ ...l, product, unit: product.price, total: product.price * l.qty }] : [];
   });
   // GST per line, because the rate depends on per-piece price.
@@ -128,7 +129,7 @@ export function totals(ls: Line[]) {
   };
 }
 
-export const useBagTotals = () => totals(useBag());
+export const useBagTotals = () => totals(useBag(), useCatalogue());
 
 /* ── bag drawer open/close — tiny store so any button can open it ── */
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ProductCard } from "@/components/ProductCard";
-import { PRODUCTS } from "@/lib/catalogue";
+import { useCatalogue } from "@/components/CatalogueProvider";
 
 /**
  * Apple's shelf: a horizontal row that snaps card by card, with the
@@ -12,6 +12,7 @@ import { PRODUCTS } from "@/lib/catalogue";
  * and the arrow buttons only call scrollBy.
  */
 export function ProductRail() {
+  const products = useCatalogue();
   const rail = useRef<HTMLUListElement | null>(null);
   const [edge, setEdge] = useState({ start: true, end: false });
 
@@ -62,7 +63,7 @@ export function ProductRail() {
         className="no-scrollbar mt-12 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth px-5 pb-4 md:px-[max(20px,calc((100vw-1240px)/2+20px))]"
         style={{ scrollPaddingInline: "max(20px, calc((100vw - 1240px) / 2 + 20px))" }}
       >
-        {PRODUCTS.map((p, i) => (
+        {products.map((p, i) => (
           <li key={p.slug} className="w-[82vw] shrink-0 snap-start sm:w-[46vw] lg:w-[34vw] xl:w-[400px]">
             <ProductCard product={p} sizes="(min-width: 1280px) 400px, (min-width: 1024px) 34vw, (min-width: 640px) 46vw, 82vw" eager={i < 2} />
           </li>

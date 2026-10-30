@@ -4,13 +4,13 @@ import { Photo } from "@/components/Photo";
 import { Reveal } from "@/components/Reveal";
 import { ProductCard } from "@/components/ProductCard";
 import { BuyBox } from "@/components/product/BuyBox";
-import { PRODUCTS, productBySlug } from "@/lib/catalogue";
-import { art } from "@/lib/media";
-import { liveStock } from "@/lib/server/stock";
+import { TurnToy } from "@/components/signature/TurnToy";
+import { PRODUCTS } from "@/lib/catalogue";
+import { getCatalogue, getProduct } from "@/lib/server/catalogue";
 
 type Params = { params: Promise<{ slug: string }> };
 
-// Rebuild the page with fresh stock at most every 30 seconds.
+// Rebuild with fresh stock at most every 30 seconds; a dashboard save refreshes it at once.
 export const revalidate = 30;
 
 // Only the catalogue slugs exist; anything else is a real 404, not a render.
@@ -18,7 +18,7 @@ export const dynamicParams = false;
 export const generateStaticParams = () => PRODUCTS.map((p) => ({ slug: p.slug }));
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
-  const p = productBySlug((await params).slug);
+  const p = await getProduct((await params).slug);
   if (!p) return {};
   return { title: p.name, description: `${p.tagline} ${p.body}` };
 }
@@ -30,12 +30,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
  * above it.
  */
 export default async function ProductPage({ params }: Params) {
-  const base = productBySlug((await params).slug);
-  if (!base) notFound();
-  const p = { ...base, stock: await liveStock(base) };
+  const { slug } = await params;
+  const products = await getCatalogue();
+  const p = products.find((x) => x.slug === slug);
+  if (!p) notFound();
 
-  const sides = (["front", "back"] as const).filter((s) => art(p.art[s]));
-  const others = PRODUCTS.filter((x) => x.slug !== p.slug);
+  const sides = (["front", "back"] as const).filter((s) => p.art[s]);
+  const others = products.filter((x) => x.slug !== p.slug);
 
   return (
     <>
@@ -45,13 +46,13 @@ export default async function ProductPage({ params }: Params) {
             aria-label={`${p.name} photographs`}
             className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 md:col-span-7 md:flex-col md:gap-4 md:overflow-visible md:px-0"
           >
-            {p.photos.map((id, i) => (
+            {p.photos.map((m, i) => (
               <li
-                key={id}
+                key={m.id}
                 className="relative aspect-[4/5] w-[84vw] shrink-0 snap-center overflow-hidden rounded-[28px] bg-surface md:w-full"
               >
                 <Photo
-                  id={id}
+                  media={m}
                   alt={`${p.name} tee, SS26 shoot`}
                   sizes="(min-width: 1240px) 700px, (min-width: 768px) 58vw, 84vw"
                   fill
@@ -73,31 +74,35 @@ export default async function ProductPage({ params }: Params) {
       {sides.length > 0 && (
         <section data-ground={p.ground} className="border-t border-line px-5 py-24 md:py-32">
           <div className="mx-auto max-w-[1240px]">
-            <Reveal>
-              <h2 className="t-headline">The print.</h2>
-              <p className="t-body mt-4 max-w-[52ch] text-fg-2 first-letter:uppercase">{p.body}</p>
-            </Reveal>
-            <div className={`mt-14 grid gap-4 ${sides.length > 1 ? "md:grid-cols-2" : "md:max-w-[620px]"}`}>
-              {sides.map((s, i) => (
-                <Reveal key={s} delay={i * 0.08}>
-                  <figure>
-                    <div
-                      className="relative aspect-square overflow-hidden rounded-[28px] ring-1 ring-line ring-inset"
-                      style={{ background: p.garment.hex }}
-                    >
-                      <Photo
-                        id={p.art[s]!}
-                        kind="art"
-                        alt={`${p.name} ${s} print artwork`}
-                        sizes="(min-width: 768px) 600px, 100vw"
-                        fill
-                        className="object-contain p-[12%]"
-                      />
-                    </div>
-                    <figcaption className="t-eyebrow mt-3 text-fg-2">{s}</figcaption>
-                  </figure>
+            <div className="grid items-center gap-12 md:grid-cols-12">
+              <div className="md:col-span-5">
+                <Reveal>
+                  <h2 className="t-headline">The print.</h2>
+                  <p className="t-body mt-4 max-w-[46ch] text-fg-2 first-letter:uppercase">{p.body}</p>
                 </Reveal>
-              ))}
+                <div className="mt-10 grid max-w-[360px] grid-cols-2 gap-3">
+                  {sides.map((s) => (
+                    <figure key={s}>
+                      <div
+                        className="relative aspect-square overflow-hidden rounded-[18px] ring-1 ring-line ring-inset"
+                        style={{ background: p.garment.hex }}
+                      >
+                        <Photo
+                          media={p.art[s]}
+                          alt={`${p.name} ${s} print artwork`}
+                          sizes="180px"
+                          fill
+                          className="object-contain p-[10%]"
+                        />
+                      </div>
+                      <figcaption className="t-eyebrow mt-2 text-fg-2">{s} artwork</figcaption>
+                    </figure>
+                  ))}
+                </div>
+              </div>
+              <div className="md:col-span-7">
+                <TurnToy product={p} />
+              </div>
             </div>
           </div>
         </section>

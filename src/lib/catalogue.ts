@@ -1,4 +1,5 @@
 import type { Paise } from "@/lib/money";
+import { shootMedia, artMedia, type Media } from "@/lib/media";
 
 export const SIZES = ["S", "M", "L", "XL", "XXL"] as const;
 export type Size = (typeof SIZES)[number];
@@ -10,7 +11,14 @@ export type Size = (typeof SIZES)[number];
  */
 export type Ground = "dark" | "light" | "red";
 
-export type Product = {
+/**
+ * The seed: how each tee is written in code, with photos referenced by
+ * shoot id ("0119") and art by key ("remember-back"). This is only the
+ * starting point and the offline fallback — once the database is
+ * configured, the live catalogue comes from Supabase, where the admin
+ * dashboard edits it.
+ */
+type ProductSeed = {
   slug: string;
   /** Dot-matrix index, shown wherever the product is listed. */
   index: string;
@@ -39,6 +47,17 @@ export type Product = {
   sku: string;
 };
 
+/**
+ * A product as the site renders it. Images are full records — address,
+ * size, blur — so a photo shipped with the site and one uploaded from
+ * the dashboard look exactly the same to every component.
+ */
+export type Product = Omit<ProductSeed, "photos" | "chapter" | "art"> & {
+  photos: Media[];
+  chapter: Media | null;
+  art: { front?: Media; back?: Media };
+};
+
 // Festive offer: ₹1,299 MRP slashed to ₹699. Both far below the ₹2,500
 // GST line, so 5% applies either way and the discount costs no tax margin.
 const price = 69_900; // ₹699
@@ -47,7 +66,7 @@ const mrp = 129_900; // ₹1,299
 /** Shown beside the struck MRP wherever the offer is mentioned. */
 export const OFFER_LABEL = "Festive offer";
 
-export const PRODUCTS: readonly Product[] = [
+const SEED: readonly ProductSeed[] = [
   {
     slug: "remember",
     index: "001",
@@ -161,7 +180,21 @@ export const PRODUCTS: readonly Product[] = [
   },
 ];
 
-export const productBySlug = (slug: string) => PRODUCTS.find((p) => p.slug === slug);
+const resolve = (s: ProductSeed): Product => ({
+  ...s,
+  photos: s.photos.map(shootMedia).filter((m): m is Media => !!m),
+  chapter: shootMedia(s.chapter),
+  art: {
+    ...(s.art.front && artMedia(s.art.front) ? { front: artMedia(s.art.front)! } : {}),
+    ...(s.art.back && artMedia(s.art.back) ? { back: artMedia(s.art.back)! } : {}),
+  },
+});
+
+/** The static catalogue — the database seed and the offline fallback. */
+export const PRODUCTS: readonly Product[] = SEED.map(resolve);
+
+export const productBySlug = (slug: string, list: readonly Product[] = PRODUCTS) =>
+  list.find((p) => p.slug === slug);
 export const skuFor = (p: Product, size: Size) => `${p.sku}-${size}`;
 export const inStock = (p: Product) => SIZES.some((s) => p.stock[s] > 0);
 

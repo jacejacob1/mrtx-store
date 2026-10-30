@@ -28,7 +28,7 @@ export function ProductCard({
       <div className="relative aspect-[4/5] overflow-hidden rounded-[28px] bg-surface">
         <div className="absolute inset-0 transition-transform duration-[1200ms] ease-sheet group-hover:scale-[1.035]">
           <Photo
-            id={first}
+            media={first}
             alt={`${product.name} — worn`}
             sizes={sizes}
             fill
@@ -37,7 +37,7 @@ export function ProductCard({
           />
           {second && (
             <Photo
-              id={second}
+              media={second}
               alt=""
               sizes={sizes}
               fill
